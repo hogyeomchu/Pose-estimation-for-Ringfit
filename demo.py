@@ -229,7 +229,7 @@ def main():
             # Preventing errors caused by special scenarios
             if results[0].keypoints.shape[1] == 0:
                 if args.show:
-                    put_text(frame, 'No Object', counter,
+                    #put_text(frame, 'No Object', counter,
                              round(1000 / results[0].speed['inference'], 2), plot_size_redio)
                     scale = 640 / max(frame.shape[0], frame.shape[1])
                     show_frame = cv2.resize(frame, (0, 0), fx=scale, fy=scale)
