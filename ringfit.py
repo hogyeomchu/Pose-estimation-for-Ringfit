@@ -15,7 +15,8 @@ sport_list = {
         'maintaining': 70,
         'relaxing': 110,
         'concerned_key_points_idx': [5, 6, 11, 12, 13, 14],
-        'concerned_skeletons_idx': [[14, 12], [15, 13], [6, 12], [7, 13]]
+        'concerned_skeletons_idx': [[14, 12], [15, 13], [6, 12], [7, 13]],
+        'example_idx' : [1] # 여기에 보기 스켈레톤 넣기
     },
     'pushup': {
         'left_points_idx': [6, 8, 10],
@@ -23,7 +24,8 @@ sport_list = {
         'maintaining': 140,
         'relaxing': 120,
         'concerned_key_points_idx': [5, 6, 7, 8, 9, 10],
-        'concerned_skeletons_idx': [[9, 11], [7, 9], [6, 8], [8, 10]]
+        'concerned_skeletons_idx': [[9, 11], [7, 9], [6, 8], [8, 10]],
+        'example_idx' : [1]
     },
     'squat': {
         'left_points_idx': [11, 13, 15],
@@ -31,7 +33,8 @@ sport_list = {
         'maintaining': 80,
         'relaxing': 140,
         'concerned_key_points_idx': [11, 12, 13, 14, 15],
-        'concerned_skeletons_idx': [[16, 14], [14, 12], [17, 15], [15, 13]]
+        'concerned_skeletons_idx': [[16, 14], [14, 12], [17, 15], [15, 13]],
+        'example_idx' : [1]
     }
 }
 
@@ -284,6 +287,10 @@ def main():
             # add relevant information to frame
             put_text(
                 annotated_frame, args.sport, counter, round(1000 / results[0].speed['inference'], 2), plot_size_redio)
+            
+            # 바운딩 박스 넣어보기 안될 수도 있음
+            bbox_x, bbox_y, bbox_width, bbox_height = 170, 400, 300, 50
+            cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 255, 0), 2)
 
             # Display the annotated frame
             if args.show:
