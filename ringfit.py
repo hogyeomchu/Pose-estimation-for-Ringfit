@@ -78,6 +78,10 @@ def calculate_angle(key_points, left_points_idx, right_points_idx):
     angle = (angle_left + angle_right) / 2
     return angle
 
+def calculate_mse(key_points):
+    
+
+
 
 def plot(pose_result, plot_size_redio, show_points=None, show_skeleton=None):
     class _Annotator(Annotator):
@@ -240,10 +244,13 @@ def main():
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
                 continue
+########################## 고쳐야 할 부분
 
             # Get hyperparameters
             left_points_idx = sport_list[args.sport]['left_points_idx']
             right_points_idx = sport_list[args.sport]['right_points_idx']
+
+            points_idx = sport_list[args.sport]['points_idx']
 
             # Calculate angle
             angle = calculate_angle(results[0].keypoints, left_points_idx, right_points_idx)
@@ -262,6 +269,7 @@ def main():
                     counter += 1
                     state_keep = False
 
+############################
             # Visualize the results on the frame
             annotated_frame = plot(
                 results[0], plot_size_redio,
