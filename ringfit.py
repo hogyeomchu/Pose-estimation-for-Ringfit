@@ -287,6 +287,10 @@ def main():
             # add relevant information to frame
             put_text(
                 annotated_frame, args.sport, counter, round(1000 / results[0].speed['inference'], 2), plot_size_redio)
+            
+            # 바운딩 박스 넣어보기 안될 수도 있음
+            bbox_x, bbox_y, bbox_width, bbox_height = 170, 400, 300, 50
+            cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 255, 0), 2)
 
             # Display the annotated frame
             if args.show:
