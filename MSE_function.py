@@ -5,7 +5,7 @@ import numpy as np
 
 length = 17 # total number of keypoints 
 
-
+# a =  keypoints[0][i][0] b = keypoints[0][i][1]
 
 def mse(a,b, c, d):       # x1 y1 x2 y2 order : 각각은 17개 원소 배열 
     for i in range(length):
