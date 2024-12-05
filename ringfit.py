@@ -16,7 +16,7 @@ sport_list = {
         'relaxing': 110,
         'concerned_key_points_idx': [5, 6, 11, 12, 13, 14],
         'concerned_skeletons_idx': [[14, 12], [15, 13], [6, 12], [7, 13]],
-        'example_idx' : [1] # 여기에 보기 스켈레톤 넣기
+        'example_idx' : [1] # 여기에 예시 스켈레톤 넣기
     },
     'pushup': {
         'left_points_idx': [6, 8, 10],
@@ -38,6 +38,7 @@ sport_list = {
     }
 }
 
+attention_idx = [1] # 차렷자세 예시 스켈레톤
 
 def calculate_angle(key_points, left_points_idx, right_points_idx):
     def _calculate_angle(line1, line2):
@@ -223,7 +224,7 @@ def main():
     reaching_last = False
     state_keep = False
     counter = 0
-    height, weight = input("키와 몸무게를 입력하세요: ").split
+    height, weight = input("키와 몸무게를 입력하세요: ").split()
     print("키: ", height)
     print("몸무게: ", weight)
 
