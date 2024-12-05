@@ -16,7 +16,7 @@ sport_list = {
         'relaxing': 110,
         'concerned_key_points_idx': [5, 6, 11, 12, 13, 14],
         'concerned_skeletons_idx': [[14, 12], [15, 13], [6, 12], [7, 13]],
-        'example_idx' : [1] # 여기에 보기 스켈레톤 넣기
+        'example_idx' : [1] # 여기에 예시 스켈레톤 넣기
     },
     'pushup': {
         'left_points_idx': [6, 8, 10],
@@ -38,6 +38,7 @@ sport_list = {
     }
 }
 
+attention_idx = [1] # 차렷자세 예시 스켈레톤
 
 def calculate_angle(key_points, left_points_idx, right_points_idx):
     def _calculate_angle(line1, line2):
@@ -83,7 +84,7 @@ def calculate_angle(key_points, left_points_idx, right_points_idx):
 
 ################# MSE 계산
 
-def calculate_mse(key_points):
+def calculate_mse(key_points, example, height, weight):
     error = 0
     return error
 
@@ -223,6 +224,9 @@ def main():
     reaching_last = False
     state_keep = False
     counter = 0
+    height, weight = input("키와 몸무게를 입력하세요: ").split()
+    print("키: ", height)
+    print("몸무게: ", weight)
 
     # Loop through the video frames
     while cap.isOpened():
@@ -250,16 +254,18 @@ def main():
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
                 continue
-########################## 고쳐야 할 부분
+########################## 고쳐야 할 부분 FSM 넣기
 
             # Get hyperparameters
             left_points_idx = sport_list[args.sport]['left_points_idx']
             right_points_idx = sport_list[args.sport]['right_points_idx']
 
-            points_idx = sport_list[args.sport]['points_idx']
+            example_idx = sport_list[args.sport]['example_idx']
 
             # Calculate angle
             angle = calculate_angle(results[0].keypoints, left_points_idx, right_points_idx)
+
+            error = calculate_mse(results[0].keypoints, example_idx, height, weight)
 
             # Determine whether to complete once
             if angle < sport_list[args.sport]['maintaining']:
@@ -274,6 +280,7 @@ def main():
                 if not reaching and state_keep:
                     counter += 1
                     state_keep = False
+
 
 ############################
             # Visualize the results on the frame
