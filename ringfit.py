@@ -253,7 +253,7 @@ def main():
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
                 continue
-########################## 고쳐야 할 부분
+########################## 고쳐야 할 부분 FSM 넣기
 
             # Get hyperparameters
             left_points_idx = sport_list[args.sport]['left_points_idx']
