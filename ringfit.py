@@ -78,10 +78,13 @@ def calculate_angle(key_points, left_points_idx, right_points_idx):
     angle = (angle_left + angle_right) / 2
     return angle
 
+################# MSE 계산
+
 def calculate_mse(key_points):
-    
+    error = 0
+    return error
 
-
+#################
 
 def plot(pose_result, plot_size_redio, show_points=None, show_skeleton=None):
     class _Annotator(Annotator):
