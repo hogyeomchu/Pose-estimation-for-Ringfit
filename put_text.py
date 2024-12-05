@@ -45,7 +45,7 @@ def put_text(frame, exercise, count, fps, heart_data, redio):
         (255, 255, 255), thickness=int(2 * redio), lineType=cv2.LINE_AA
     )
     cv2.putText(
-        frame, f'Heart: {heart}', (int(30 * redio), int(200 * redio)), 0, 0.9 * redio,
+        frame, f'Heart: {heart_data}', (int(30 * redio), int(200 * redio)), 0, 0.9 * redio,
         (255, 255, 255), thickness=int(2 * redio), lineType=cv2.LINE_AA
     )
     
