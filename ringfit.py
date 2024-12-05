@@ -83,7 +83,7 @@ def calculate_angle(key_points, left_points_idx, right_points_idx):
 
 ################# MSE 계산
 
-def calculate_mse(key_points):
+def calculate_mse(key_points, example, height, weight):
     error = 0
     return error
 
@@ -223,6 +223,9 @@ def main():
     reaching_last = False
     state_keep = False
     counter = 0
+    height, weight = input("키와 몸무게를 입력하세요: ").split
+    print("키: ", height)
+    print("몸무게: ", weight)
 
     # Loop through the video frames
     while cap.isOpened():
@@ -256,10 +259,12 @@ def main():
             left_points_idx = sport_list[args.sport]['left_points_idx']
             right_points_idx = sport_list[args.sport]['right_points_idx']
 
-            points_idx = sport_list[args.sport]['points_idx']
+            example_idx = sport_list[args.sport]['example_idx']
 
             # Calculate angle
             angle = calculate_angle(results[0].keypoints, left_points_idx, right_points_idx)
+
+            error = calculate_mse(results[0].keypoints, example_idx, height, weight)
 
             # Determine whether to complete once
             if angle < sport_list[args.sport]['maintaining']:
@@ -274,6 +279,7 @@ def main():
                 if not reaching and state_keep:
                     counter += 1
                     state_keep = False
+
 
 ############################
             # Visualize the results on the frame
