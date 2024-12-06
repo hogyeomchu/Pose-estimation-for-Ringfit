@@ -8,6 +8,8 @@ from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
 
+
+
 sport_list = {
     'sit-up': {
         'left_points_idx': [6, 12, 14],
@@ -220,6 +222,8 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
+    state = "ready"  # ready, start, reset, finish
+
     reaching = False
     reaching_last = False
     state_keep = False
@@ -232,7 +236,7 @@ def main():
     while cap.isOpened():
         # Read a frame from the video
         success, frame = cap.read()
-
+            
         if success:
             # Set plot size redio for inputs with different resolutions
             plot_size_redio = max(frame.shape[1] / 960, frame.shape[0] / 540)
@@ -255,31 +259,54 @@ def main():
                     break
                 continue
 ########################## 고쳐야 할 부분 FSM 넣기
+                    
+            if state == "ready":
+                # 바운딩 박스 넣어보기 안될 수도 있음
+                bbox_x, bbox_y, bbox_width, bbox_height = 170, 400, 300, 50
+                cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 255, 0), 2)
+                
+                # 발 키포인트(15, 16) 확인 및 상태 변경
+                if results[0].keypoints is not None:
+                    for person_keypoints in results[0].keypoints.data:
+                        left_ankle = person_keypoints[15]
+                        right_ankle = person_keypoints[16]
 
-            # Get hyperparameters
-            left_points_idx = sport_list[args.sport]['left_points_idx']
-            right_points_idx = sport_list[args.sport]['right_points_idx']
+                        left_x, left_y, left_conf = left_ankle
+                        right_x, right_y, right_conf = right_ankle
 
-            example_idx = sport_list[args.sport]['example_idx']
+                        if (
+                            left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height
+                        ) or (
+                            right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
+                        ):
+                            state = "start"
+                            break
 
-            # Calculate angle
-            angle = calculate_angle(results[0].keypoints, left_points_idx, right_points_idx)
+            if state == "start":            
+                # Get hyperparameters
+                left_points_idx = sport_list[args.sport]['left_points_idx']
+                right_points_idx = sport_list[args.sport]['right_points_idx']
 
-            error = calculate_mse(results[0].keypoints, example_idx, height, weight)
+                example_idx = sport_list[args.sport]['example_idx']
 
-            # Determine whether to complete once
-            if angle < sport_list[args.sport]['maintaining']:
-                reaching = True
-            if angle > sport_list[args.sport]['relaxing']:
-                reaching = False
+                # Calculate angle
+                angle = calculate_angle(results[0].keypoints, left_points_idx, right_points_idx)
 
-            if reaching != reaching_last:
-                reaching_last = reaching
-                if reaching:
-                    state_keep = True
-                if not reaching and state_keep:
-                    counter += 1
-                    state_keep = False
+                error = calculate_mse(results[0].keypoints, example_idx, height, weight)
+
+                # Determine whether to complete once
+                if angle < sport_list[args.sport]['maintaining']:
+                    reaching = True
+                if angle > sport_list[args.sport]['relaxing']:
+                    reaching = False
+
+                if reaching != reaching_last:
+                    reaching_last = reaching
+                    if reaching:
+                        state_keep = True
+                    if not reaching and state_keep:
+                        counter += 1
+                        state_keep = False
 
 
 ############################
@@ -295,9 +322,6 @@ def main():
             put_text(
                 annotated_frame, args.sport, counter, round(1000 / results[0].speed['inference'], 2), plot_size_redio)
             
-            # 바운딩 박스 넣어보기 안될 수도 있음
-            bbox_x, bbox_y, bbox_width, bbox_height = 170, 400, 300, 50
-            cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 255, 0), 2)
 
             # Display the annotated frame
             if args.show:
