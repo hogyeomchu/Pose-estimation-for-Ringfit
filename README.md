@@ -21,4 +21,4 @@ tflearn = 전이학습 그냥 대충 구현해봄 쓸일 없을듯
 
 skeleton = 고정된 좌표 줬을 때 스켈레톤 띄워지는지 테스트용
 
-keypoint.py = ㅇㅣㅁㅣㅈㅣ keypoint ㅂㅕㄴㅎㅗㅏㄴ
+keypoint.py = 이미지 keypoint 변환
