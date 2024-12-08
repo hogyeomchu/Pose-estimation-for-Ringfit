@@ -4,6 +4,8 @@ import numpy as np
 import math
 import datetime
 import argparse
+import pygame
+import sys
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
@@ -86,9 +88,37 @@ def calculate_angle(key_points, left_points_idx, right_points_idx):
 
 ################# MSE 계산
 
-def calculate_mse(key_points, example, height, weight):
-    error = 0
-    return error
+def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5):
+    # Ensure key_points is not empty
+    if key_points is None or len(key_points) == 0:
+        raise ValueError("No keypoints detected.")
+
+    # Convert key_points to numpy array and normalize
+    key_points_np = key_points[0].cpu().numpy()  # Assume single person; Shape: (17, 3)
+    key_coords = key_points_np[:, :2]  # Extract (x, y) coordinates
+    confidences = key_points_np[:, 2]  # Extract confidence values
+
+    # Normalize keypoint coordinates by image dimensions
+    key_coords[:, 0] /= weight
+    key_coords[:, 1] /= height
+
+    # Normalize example coordinates
+    example_np = np.array(example)
+    example_normalized = example_np / np.array([weight, height])
+
+    # Filter keypoints based on confidence
+    valid_indices = confidences > confidence_threshold
+    valid_key_coords = key_coords[valid_indices]
+    valid_example_coords = example_normalized[valid_indices]
+
+    # Ensure there are valid keypoints to compare
+    if len(valid_key_coords) == 0:
+        raise ValueError("No keypoints meet the confidence threshold.")
+
+    # Calculate MSE
+    mse = np.mean((valid_key_coords - valid_example_coords) ** 2)
+
+    return mse
 
 #################
 
@@ -197,6 +227,115 @@ def parse_args():
     return args
 
 
+def get_height_and_weight():
+    # Pygame 초기화
+    pygame.init()
+
+    # 화면 크기 설정 (예: 800x600)
+    screen_width, screen_height = 800, 600
+    screen = pygame.display.set_mode((screen_width, screen_height))
+    pygame.display.set_caption("키와 몸무게 입력")
+
+    # 폰트 설정
+    font = pygame.font.Font(None, 48)  # 더 큰 화면에 맞춰 글씨 크기를 조정
+
+    # 색상 설정
+    WHITE = (255, 255, 255)
+    BLACK = (0, 0, 0)
+    GRAY = (200, 200, 200)
+
+    # 입력 필드 초기화
+    height_text = ""
+    weight_text = ""
+    active_field = None
+
+    # 결과 저장
+    height = None
+    weight = None
+
+    # 배경 이미지 로드
+    try:
+        background_image = pygame.image.load("background.jpg")  # 여기에 원하는 이미지 파일 경로
+        background_image = pygame.transform.scale(background_image, (screen_width, screen_height))  # 화면 크기에 맞게 조정
+    except FileNotFoundError:
+        print("배경 이미지 파일을 찾을 수 없습니다. 기본 하얀 배경을 사용합니다.")
+        background_image = None
+
+    # 루프
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # 마우스 클릭으로 활성 필드 변경
+                if 300 < event.pos[0] < 600 and 200 < event.pos[1] < 260:
+                    active_field = "height"
+                elif 300 < event.pos[0] < 600 and 300 < event.pos[1] < 360:
+                    active_field = "weight"
+                else:
+                    active_field = None
+            elif event.type == pygame.KEYDOWN:
+                if active_field == "height":
+                    if event.key == pygame.K_RETURN:  # 엔터키로 입력 완료
+                        height = height_text
+                        active_field = None
+                    elif event.key == pygame.K_BACKSPACE:  # 백스페이스로 삭제
+                        height_text = height_text[:-1]
+                    else:
+                        height_text += event.unicode
+                elif active_field == "weight":
+                    if event.key == pygame.K_RETURN:
+                        weight = weight_text
+                        active_field = None
+                    elif event.key == pygame.K_BACKSPACE:
+                        weight_text = weight_text[:-1]
+                    else:
+                        weight_text += event.unicode
+
+        # 키와 몸무게가 입력되었는지 확인
+        if height and weight:
+            running = False
+
+        # 배경 이미지 그리기
+        if background_image:
+            screen.blit(background_image, (0, 0))
+        else:
+            screen.fill(WHITE)  # 기본 하얀 배경
+
+        # 텍스트 렌더링
+        height_label = font.render("Height:", True, BLACK)
+        weight_label = font.render("Weight:", True, BLACK)
+
+        # 입력 박스 그리기 (흰색 채우기)
+        pygame.draw.rect(screen, WHITE, (300, 200, 300, 60))  # 흰색으로 채움
+        pygame.draw.rect(screen, WHITE, (300, 300, 300, 60))  # 흰색으로 채움
+        pygame.draw.rect(screen, GRAY if active_field == "height" else BLACK, (300, 200, 300, 60), 2)  # 테두리
+        pygame.draw.rect(screen, GRAY if active_field == "weight" else BLACK, (300, 300, 300, 60), 2)  # 테두리
+
+        # 입력 텍스트 렌더링
+        height_surface = font.render(height_text, True, BLACK)
+        weight_surface = font.render(weight_text, True, BLACK)
+
+        # 화면에 텍스트와 입력칸 표시
+        screen.blit(height_label, (150, 215))  # 높이 텍스트 위치 조정
+        screen.blit(weight_label, (150, 315))  # 몸무게 텍스트 위치 조정
+        screen.blit(height_surface, (310, 215))  # 입력 필드 텍스트 위치 조정
+        screen.blit(weight_surface, (310, 315))  # 입력 필드 텍스트 위치 조정
+
+        # 화면 업데이트
+        pygame.display.flip()
+
+    # Pygame 종료
+    pygame.quit()
+
+    # 키와 몸무게 반환
+    print("키 :", height)
+    print("몸무게 :", weight)
+    return float(height), float(weight)
+
+
 def main():
     # Obtain relevant parameters
     args = parse_args()
@@ -228,9 +367,11 @@ def main():
     reaching_last = False
     state_keep = False
     counter = 0
-    height, weight = input("키와 몸무게를 입력하세요: ").split()
-    print("키: ", height)
-    print("몸무게: ", weight)
+    #height, weight = input("키와 몸무게를 입력하세요: ").split()
+    #print("키: ", height)
+    #print("몸무게: ", weight)
+    height, weight = get_height_and_weight()
+
 
     # Loop through the video frames
     while cap.isOpened():
