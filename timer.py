@@ -4,7 +4,7 @@ import cv2
 
 # 전역 변수 설정
 timer_running = False  # 타이머 실행 여부
-remaining_time = 3  # 초기 타이머 시간 설정 (초 단위)
+remaining_time          # 초기 타이머 시간 설정 (초 단위)
 scheduler = sched.scheduler(time.time, time.sleep)  # sched 스케줄러 객체 생성
 
 
@@ -18,6 +18,17 @@ def countdown_timer():
     else:
         # timer =0 이 됐을 떄 소리가 나게 한다. 
         timer_running = False  # 타이머 종료
+
+
+# 타이머 시작 함수
+def start_timer(duration):
+    global remaining_time, timer_running
+    remaining_time = duration  # 초기화
+    if not timer_running:
+        timer_running = True
+        scheduler.enter(1, 1, countdown_timer)  # 타이머 시작
+
+
 
 
 
@@ -59,13 +70,7 @@ def put_text(frame, exercise, count, fps, heart_data, redio):
 
 
 
-# 타이머 시작 함수
-def start_timer(duration):
-    global remaining_time, timer_running
-    remaining_time = duration  # 초기화
-    if not timer_running:
-        timer_running = True
-        scheduler.enter(1, 1, countdown_timer)  # 타이머 시작
+
 
 
 
@@ -105,3 +110,18 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+if state == "ready": 
+    start_timer(3)
+
+
+
+if state == "start": 
+    if (remaining_time == 3  and error < 100):
+        countdown_timer()
+
