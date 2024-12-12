@@ -1,11 +1,13 @@
 import os
 import cv2
+import torch
 import numpy as np
 import math
 import datetime
 import argparse
 import pygame
 import sys
+import time
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
@@ -38,7 +40,25 @@ sport_list = {
         'relaxing': 140,
         'concerned_key_points_idx': [11, 12, 13, 14, 15],
         'concerned_skeletons_idx': [[16, 14], [14, 12], [17, 15], [15, 13]],
-        'example_idx' : [1]
+        'example_idx' : np.array([
+                            [100, 200],
+                            [120, 220],
+                            [140, 240],
+                            [160, 260],
+                            [180, 280],
+                            [200, 300],
+                            [220, 320],
+                            [240, 340],
+                            [260, 360],
+                            [280, 380],
+                            [300, 400],
+                            [320, 420],
+                            [340, 440],
+                            [360, 460],
+                            [380, 480],
+                            [400, 500],
+                            [420, 520],
+                        ])
     }
 }
 
@@ -87,38 +107,40 @@ def calculate_angle(key_points, left_points_idx, right_points_idx):
     return angle
 
 ################# MSE 계산
-
 def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5):
     # Ensure key_points is not empty
     if key_points is None or len(key_points) == 0:
         raise ValueError("No keypoints detected.")
 
-    # Convert key_points to numpy array and normalize
-    key_points_np = key_points[0].cpu().numpy()  # Assume single person; Shape: (17, 3)
-    key_coords = key_points_np[:, :2]  # Extract (x, y) coordinates
-    confidences = key_points_np[:, 2]  # Extract confidence values
+    # Extract (x, y) coordinates and confidence values
+    keypoints_tensor = key_points.data  # Tensor 형태로 데이터 접근
+    key_coords = keypoints_tensor[0, :, :2]  # Extract (x, y) coordinates
+    confidences = keypoints_tensor[0, :, 2]  # Extract confidence values
 
-    # Normalize keypoint coordinates by image dimensions
-    key_coords[:, 0] /= weight
-    key_coords[:, 1] /= height
+    # Filter keypoints based on confidence
+    valid_indices = confidences > confidence_threshold
+    valid_key_coords = key_coords[valid_indices]
+
+    # Normalize coordinates by image dimensions
+    valid_key_coords[:, 0] /= weight
+    valid_key_coords[:, 1] /= height
 
     # Normalize example coordinates
     example_np = np.array(example)
     example_normalized = example_np / np.array([weight, height])
 
-    # Filter keypoints based on confidence
-    valid_indices = confidences > confidence_threshold
-    valid_key_coords = key_coords[valid_indices]
-    valid_example_coords = example_normalized[valid_indices]
+    # Ensure valid keypoints to compare
+    valid_example_coords = example_normalized[valid_indices.cpu().numpy(), :]
 
-    # Ensure there are valid keypoints to compare
     if len(valid_key_coords) == 0:
         raise ValueError("No keypoints meet the confidence threshold.")
 
     # Calculate MSE
-    mse = np.mean((valid_key_coords - valid_example_coords) ** 2)
+    mse = torch.mean((valid_key_coords - torch.tensor(valid_example_coords)) ** 2).item()
+    print("error: ", mse)
 
     return mse
+
 
 #################
 
@@ -361,26 +383,26 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
-    state = "ready"  # ready, start, reset, finish
+    state = "ready"  # ready, start, redo, finish
+    sports = list(sport_list.keys())
+    sport_index = 0
 
     reaching = False
     reaching_last = False
     state_keep = False
     counter = 0
-    #height, weight = input("키와 몸무게를 입력하세요: ").split()
-    #print("키: ", height)
-    #print("몸무게: ", weight)
-    height, weight = get_height_and_weight()
 
+    height, weight = get_height_and_weight()
 
     # Loop through the video frames
     while cap.isOpened():
         # Read a frame from the video
         success, frame = cap.read()
-            
+    
         if success:
             # Set plot size redio for inputs with different resolutions
-            plot_size_redio = max(frame.shape[1] / 960, frame.shape[0] / 540)
+            resized_frame = cv2.resize(frame, (1280, 720))
+            plot_size_redio = max(resized_frame.shape[1] / 1280, resized_frame.shape[0] / 720)
 
             # Run YOLOv8 inference on the frame
             results = model(frame)
@@ -417,7 +439,7 @@ def main():
 
                         if (
                             left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height
-                        ) or (
+                        ) and (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):
                             state = "start"
@@ -425,29 +447,48 @@ def main():
 
             if state == "start":            
                 # Get hyperparameters
-                left_points_idx = sport_list[args.sport]['left_points_idx']
-                right_points_idx = sport_list[args.sport]['right_points_idx']
-
                 example_idx = sport_list[args.sport]['example_idx']
+                boundary = 1
 
-                # Calculate angle
-                angle = calculate_angle(results[0].keypoints, left_points_idx, right_points_idx)
-
-                error = calculate_mse(results[0].keypoints, example_idx, height, weight)
+                # Calculate mse
+                mse = calculate_mse(results[0].keypoints, example_idx, height, weight)
 
                 # Determine whether to complete once
-                if angle < sport_list[args.sport]['maintaining']:
-                    reaching = True
-                if angle > sport_list[args.sport]['relaxing']:
-                    reaching = False
-
-                if reaching != reaching_last:
-                    reaching_last = reaching
-                    if reaching:
-                        state_keep = True
-                    if not reaching and state_keep:
+                if mse < boundary:
+                    if start_time is None:  # 시작 시간 초기화
+                        start_time = time.time()
+                    elif time.time() - start_time >= 3:  # 3초 이상 경과 확인
+                        print("SUCCESS!")
                         counter += 1
-                        state_keep = False
+                        if counter < 10:
+                            state = "redo"
+                        else:
+                            state = "finish"
+                else:
+                    start_time = None
+
+            if state == "redo":
+                # Get hyperparameters
+                example_idx = sport_list[args.sport]['example_idx']
+                boundary = 1
+
+                # Calculate mse
+                mse = calculate_mse(results[0].keypoints, example_idx, height, weight)
+
+                # Determine whether to complete once
+                if mse < boundary:
+                    if start_time is None:  # 시작 시간 초기화
+                        start_time = time.time()
+                    elif time.time() - start_time >= 1:  # 1초 이상 경과 확인
+                        print("Start!")
+                        state = "start"
+                else:
+                    start_time = None
+
+            if state == "finish":
+                args.sport = sports[sport_index]
+                sport_index = (sport_index + 1) % 3
+                state = "ready"
 
 
 ############################
@@ -460,13 +501,12 @@ def main():
             # annotated_frame = results[0].plot(boxes=False)
 
             # add relevant information to frame
-            put_text(
-                annotated_frame, args.sport, counter, round(1000 / results[0].speed['inference'], 2), plot_size_redio)
+            put_text(annotated_frame, args.sport, counter, round(1000 / results[0].speed['inference'], 2), plot_size_redio)
             
 
             # Display the annotated frame
             if args.show:
-                scale = 640 / max(annotated_frame.shape[0], annotated_frame.shape[1])
+                scale = 1280 / max(annotated_frame.shape[0], annotated_frame.shape[1])
                 show_frame = cv2.resize(annotated_frame, (0, 0), fx=scale, fy=scale)
                 cv2.imshow("YOLOv8 Inference", show_frame)
 
