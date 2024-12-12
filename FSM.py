@@ -27,10 +27,10 @@ class FSM:
     def __init__(self):
         # 상태 초기화
         self.states = {  
-            "ready": State(delay=5, nstate1="start", nstate2="start", nstate3=None),
+            "ready": State(delay=5, nstate1="start", nstate2="start", nstate3="ready"),
             "start": State(delay=3, nstate1="redo", nstate2="redo", nstate3="ready"),
             "redo": State(delay=3, nstate1="start", nstate2="finish", nstate3="ready"),
-            "finish": State(delay=0, nstate1="ready", nstate2=None, nstate3=None),
+            "finish": State(delay=0, nstate1="ready", nstate2="ready", nstate3="finish"),
 
         }
         self.current_state = "ready"  # 초기 상태 설정

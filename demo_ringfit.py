@@ -1,3 +1,18 @@
+import os
+import cv2
+import torch
+import numpy as np
+import math
+import datetime
+import argparse
+import pygame
+import sys
+import time
+from ultralytics import YOLO
+from ultralytics.utils.plotting import Annotator, Colors
+from copy import deepcopy
+
+
 # 타이머 관련 변수 설정
 timer_running = False  # 타이머 실행 여부
 remaining_time = 3  # 초기 타이머 시간 설정 (초 단위)
@@ -33,10 +48,10 @@ class FSM:
     def __init__(self):
         # 상태 초기화
         self.states = {  
-            "ready": State(delay=5, nstate1="start", nstate2="start", nstate3=None),
+            "ready": State(delay=5, nstate1="start", nstate2="start", nstate3="ready"),
             "start": State(delay=3, nstate1="redo", nstate2="redo", nstate3="ready"),
             "redo": State(delay=3, nstate1="start", nstate2="finish", nstate3="ready"),
-            "finish": State(delay=0, nstate1="ready", nstate2=None, nstate3=None),
+            "finish": State(delay=0, nstate1="ready", nstate2="ready", nstate3="finish"),
         }
         self.current_state = "ready"  # 초기 상태 설정
 
@@ -70,28 +85,34 @@ def main():
             start_timer(fsm.states[fsm.current_state].delay)
             print("준비 상태입니다.")
             # 예: 타이머가 0이 되면 "start"로 전환
-            fsm.transition(condition1=int(remaining_time == 0), condition2=0, condition3=0)
+            fsm.transition((remaining_time==0), (remaining_time ==0 and counter ==10), cv2.waitKey(1) & 0xFF == ord("r"))
+
 
         elif fsm.current_state == "start":
             # 'start' 상태에서의 처리
             start_timer(fsm.states[fsm.current_state].delay)
             print("시작 상태입니다.")
             # 예: 타이머가 0이 되면 "redo"로 전환
-            fsm.transition(condition1=int(remaining_time == 0), condition2=0, condition3=0)
+            fsm.transition((remaining_time==0), (remaining_time ==0 and counter ==10), cv2.waitKey(1) & 0xFF == ord("r"))
+
 
         elif fsm.current_state == "redo":
             # 'redo' 상태에서의 처리
             start_timer(fsm.states[fsm.current_state].delay)
             print("재시작 상태입니다.")
             # 예: 타이머가 0이 되면 "finish"로 전환
-            fsm.transition(condition1=int(remaining_time == 0), condition2=0, condition3=0)
+            if cv2.waitKey(1) & 0xFF == ord("r"):                                                     # r키 누르면 다시 ready 상태로 돌아가
+                fsm.current_state == "ready"
+            
+            fsm.transition((remaining_time==0), (remaining_time ==0 and counter ==10), cv2.waitKey(1) & 0xFF == ord("r"))
+
 
         elif fsm.current_state == "finish":
             # 'finish' 상태에서의 처리
             start_timer(fsm.states[fsm.current_state].delay)
             print("완료 상태입니다.")
             # 예: 완료 후 "ready"로 돌아가기
-            fsm.transition(condition1=int(remaining_time == 0), condition2=0, condition3=0)
+            fsm.transition((remaining_time==0), (remaining_time ==0 and counter ==10), cv2.waitKey(1) & 0xFF == ord("r"))
 
         # 조건에 맞게 상태를 변경하거나 종료할 수 있습니다.
         if cv2.waitKey(1) & 0xFF == ord("q"):
