@@ -18,7 +18,7 @@ if not cap.isOpened():
     exit()
 
 # 바운딩 박스 설정
-bbox_x, bbox_y, bbox_width, bbox_height = 170, 400, 300, 50  # 기본 바운딩 박스 값
+bbox_x, bbox_y, bbox_width, bbox_height = 540, 700, 200, 75  # 기본 바운딩 박스 값
 print("Q를 눌러 프로그램을 종료하고, S를 눌러 프레임과 스켈레톤 좌표를 저장하세요.")
 
 # 스켈레톤 좌표 저장용 리스트
@@ -26,6 +26,7 @@ skeleton_data = []
 
 while True:
     ret, frame = cap.read()
+    frame = cv2.resize(frame, (1280, 800))
     if not ret:
         print("프레임을 읽을 수 없습니다.")
         break
@@ -35,7 +36,7 @@ while True:
     keypoints = results[0].keypoints  # 스켈레톤 키포인트 추출
 
     # 바운딩 박스 그리기
-    cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 255, 0), 2)
+    cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (255, 0, 0), 2)
 
     # 스켈레톤 시각화
     if keypoints is not None:

@@ -40,29 +40,11 @@ sport_list = {
         'relaxing': 140,
         'concerned_key_points_idx': [11, 12, 13, 14, 15],
         'concerned_skeletons_idx': [[16, 14], [14, 12], [17, 15], [15, 13]],
-        'example_idx' : np.array([
-                            [100, 200],
-                            [120, 220],
-                            [140, 240],
-                            [160, 260],
-                            [180, 280],
-                            [200, 300],
-                            [220, 320],
-                            [240, 340],
-                            [260, 360],
-                            [280, 380],
-                            [300, 400],
-                            [320, 420],
-                            [340, 440],
-                            [360, 460],
-                            [380, 480],
-                            [400, 500],
-                            [420, 520],
-                        ])
+        'example_idx' : [[790.8934936523438, 370.8782958984375, 0.9554082751274109], [0.0, 0.0, 0.3667287528514862], [780.343017578125, 355.3907470703125, 0.9803277850151062], [0.0, 0.0, 0.03333147615194321], [736.9127197265625, 359.50872802734375, 0.9780341982841492], [679.8504638671875, 417.9067687988281, 0.9015007019042969], [692.560791015625, 423.825927734375, 0.9957813024520874], [742.5250244140625, 501.7216796875, 0.5579652190208435], [787.887939453125, 532.1363525390625, 0.9937047362327576], [799.5919189453125, 455.236083984375, 0.6515821218490601], [813.8155517578125, 444.1479797363281, 0.9879148006439209], [523.1993408203125, 546.7066040039062, 0.9530515074729919], [520.2064819335938, 554.30029296875, 0.9888673424720764], [710.7117919921875, 564.3704833984375, 0.9626505374908447], [698.611083984375, 583.9825439453125, 0.9933033585548401], [644.0439453125, 708.7687377929688, 0.9193461537361145], [603.1053466796875, 730.88427734375, 0.9693002104759216]]
     }
 }
-
-attention_idx = [1] # 차렷자세 예시 스켈레톤
+# 차렷자세 예시 스켈레톤
+attention_idx = [[726.5889892578125, 90.649658203125, 0.9245054125785828], [0.0, 0.0, 0.33452704548835754], [719.0135498046875, 75.04046630859375, 0.9768596291542053], [0.0, 0.0, 0.04215420037508011], [673.3643798828125, 71.355224609375, 0.9657612442970276], [634.0013427734375, 158.72515869140625, 0.5154595971107483], [655.8916625976562, 161.07513427734375, 0.9977946281433105], [0.0, 0.0, 0.05190538614988327], [652.5096435546875, 298.1383056640625, 0.9959108829498291], [0.0, 0.0, 0.0905299261212349], [697.6686401367188, 401.5651550292969, 0.986933708190918], [645.534423828125, 396.4898681640625, 0.9457389712333679], [661.8905029296875, 401.6611328125, 0.9973733425140381], [641.5545654296875, 554.7891845703125, 0.9502384662628174], [669.8883056640625, 566.0969848632812, 0.9975005984306335], [624.8091430664062, 712.2351684570312, 0.9154536128044128], [627.0443115234375, 724.532470703125, 0.9882832765579224]]
 
 def calculate_angle(key_points, left_points_idx, right_points_idx):
     def _calculate_angle(line1, line2):
@@ -108,6 +90,8 @@ def calculate_angle(key_points, left_points_idx, right_points_idx):
 
 ################# MSE 계산
 def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5):
+    import torch
+
     # Ensure key_points is not empty
     if key_points is None or len(key_points) == 0:
         raise ValueError("No keypoints detected.")
@@ -117,21 +101,25 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     key_coords = keypoints_tensor[0, :, :2]  # Extract (x, y) coordinates
     confidences = keypoints_tensor[0, :, 2]  # Extract confidence values
 
+    # Convert example to NumPy array and extract its confidence values
+    example_np = np.array(example)  # example의 shape은 (17, 3) 형태로 가정
+    example_coords = example_np[:, :2]  # (x, y) coordinates
+    example_confidences = example_np[:, 2]  # confidence values
+
     # Filter keypoints based on confidence
-    valid_indices = confidences > confidence_threshold
+    valid_indices = (confidences > confidence_threshold) & (torch.tensor(example_confidences) > confidence_threshold)
+    valid_indices = valid_indices.bool()  # Ensure valid_indices is torch.bool
+
     valid_key_coords = key_coords[valid_indices]
+    valid_example_coords = example_coords[valid_indices.cpu().numpy(), :]  # Ensure alignment
 
     # Normalize coordinates by image dimensions
     valid_key_coords[:, 0] /= weight
     valid_key_coords[:, 1] /= height
-
-    # Normalize example coordinates
-    example_np = np.array(example)
-    example_normalized = example_np / np.array([weight, height])
+    valid_example_coords[:, 0] /= weight
+    valid_example_coords[:, 1] /= height
 
     # Ensure valid keypoints to compare
-    valid_example_coords = example_normalized[valid_indices.cpu().numpy(), :]
-
     if len(valid_key_coords) == 0:
         raise ValueError("No keypoints meet the confidence threshold.")
 
@@ -140,7 +128,6 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     print("error: ", mse)
 
     return mse
-
 
 #################
 
@@ -383,7 +370,7 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
-    state = "ready"  # ready, start, redo, finish
+    state = "start"  # ready, start, redo, finish
     sports = list(sport_list.keys())
     sport_index = 0
 
@@ -401,8 +388,8 @@ def main():
     
         if success:
             # Set plot size redio for inputs with different resolutions
-            resized_frame = cv2.resize(frame, (1280, 720))
-            plot_size_redio = max(resized_frame.shape[1] / 1280, resized_frame.shape[0] / 720)
+            frame = cv2.resize(frame, (1280, 800))
+            plot_size_redio = max(frame.shape[1] / 1280, frame.shape[0] / 800)
 
             # Run YOLOv8 inference on the frame
             results = model(frame)
@@ -425,8 +412,8 @@ def main():
                     
             if state == "ready":
                 # 바운딩 박스 넣어보기 안될 수도 있음
-                bbox_x, bbox_y, bbox_width, bbox_height = 170, 400, 300, 50
-                cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 255, 0), 2)
+                bbox_x, bbox_y, bbox_width, bbox_height = 540, 700, 200, 75
+                cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 0, 255), 2)
                 
                 # 발 키포인트(15, 16) 확인 및 상태 변경
                 if results[0].keypoints is not None:
@@ -469,7 +456,7 @@ def main():
 
             if state == "redo":
                 # Get hyperparameters
-                example_idx = sport_list[args.sport]['example_idx']
+                example_idx = attention_idx
                 boundary = 1
 
                 # Calculate mse
