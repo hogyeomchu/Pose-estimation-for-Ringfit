@@ -3,7 +3,6 @@ import vlc
 import time
 import serial
 
-
 try:
     arduino = serial.Serial(port='COM3', baudrate=9600, timeout=1)  # 포트 설정
     print("아두이노와 연결되었습니다.")
@@ -32,27 +31,19 @@ def read_data():
 
 
 def music():
-    try:
-        player = vlc.MediaPlayer("C:/Users/skydk/Desktop/Pose-estimation-for-Ringfit/music.mp3")  # VLC 인스턴스 생성
-        player.set_rate(1)
-        player.play()
+    player = vlc.MediaPlayer("C:/Users/skydk/Desktop/Pose-estimation-for-Ringfit/music.mp3")  # VLC 인스턴스 생성
+    player.set_rate(1)
+    player.play()
 
-        if(heart_data > 100):
+    if(heart_data > 100):
             player.set_rate(1.5)
-        elif (heart_data > 90):
+    elif (heart_data > 90):
             player.set_rate(1.2)
-        else:
+    else:
             
 
 
 
-
-
-# 배속 설정 (1.5배속)
-
-
-# 음악 재생
-player.play()
 
 # 음악이 끝날 때까지 대기
 time.sleep(100000)  # 음악 길이에 맞게 조정
