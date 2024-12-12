@@ -1,8 +1,4 @@
 # demo.py의 put_text 함수 수정
-
-import cv2
-
-
 # putText(img, text, org, fontFace, fontScale, color, thickness=None, lineType=None, bottomLeftOrigin=None)
 # img: 텍스트를 그릴 이미지. NumPy 배열 형식
 # text: 이미지에 표시할 텍스트. 문자열 형태.
@@ -19,8 +15,12 @@ import cv2
 
 #노트북 전체 화면의 왼쪽 상단이 (0,0)이며, 오른쪽으로 갈수록 x증가, 아래로 갈수록 y증가
 
+import cv2
+
 
 def put_text(frame, exercise, count, fps, heart_data, redio):
+    global remaining_time
+    
     cv2.rectangle(
         frame, (int(20 * redio), int(20 * redio)), (int(300 * redio), int(205 * redio)),
         (55, 104, 0), -1
