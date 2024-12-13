@@ -93,7 +93,7 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     # Ensure key_points is not empty
     if key_points is None or len(key_points) == 0:
         print("No keypoints detected.")
-        return 100
+        return 99999
 
     # Extract (x, y) coordinates and confidence values
     keypoints_tensor = key_points.data  # Tensor 형태로 데이터 접근
@@ -112,19 +112,19 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     valid_key_coords = key_coords[valid_indices]
     valid_example_coords = example_coords[valid_indices.cpu().numpy(), :]  # Ensure alignment
 
-    # Normalize coordinates by image dimensions
-    valid_key_coords[:, 0] /= weight
-    valid_key_coords[:, 1] /= height
-    valid_example_coords[:, 0] /= weight
-    valid_example_coords[:, 1] /= height
-
     # Ensure valid keypoints to compare
     if len(valid_key_coords) == 0:
         print("No keypoints meet the confidence threshold.")
-        return 100
-    
+        return 99999
+       
     # Calculate MSE
-    mse = torch.mean((valid_key_coords - torch.tensor(valid_example_coords)) ** 2).item()
+    # x_error = keypoints_tensor[0][16][0] - example[16][0]
+    # y_error = keypoints_tensor[0][16][1] - example[16][1]
+
+    x_diff = ((valid_key_coords[:, 0] - keypoints_tensor[0][16][0]) - (valid_example_coords[:, 0] - example[16][0]))
+    y_diff = ((valid_key_coords[:, 1] - keypoints_tensor[0][16][1]) / (height * 0.01) - ((valid_example_coords[:, 1]) - example[16][1]) / 1.84)
+
+    mse = torch.mean(x_diff ** 2 + y_diff ** 2).item()
     print("error: ", mse)
 
     return mse
@@ -134,7 +134,7 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
 def plot(pose_result, plot_size_redio, show_points=None, show_skeleton=None):
     class _Annotator(Annotator):
 
-        def kpts(self, kpts, shape=(640, 640), radius=5, line_thickness=2, kpt_line=True):
+        def kpts(self, kpts, shape=(1280, 1280), radius=5, line_thickness=2, kpt_line=True):
             """Plot keypoints on the image.
 
             Args:
@@ -370,7 +370,7 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
-    state = "ready"  # ready, start, redo, finish
+    state = "redo"  # ready, start, redo, finish
     sports = list(sport_list.keys())
     sport_index = 0
 
@@ -399,7 +399,7 @@ def main():
                 if args.show:
                     put_text(frame, 'No Object', counter,
                              round(1000 / results[0].speed['inference'], 2), plot_size_redio)
-                    scale = 640 / max(frame.shape[0], frame.shape[1])
+                    scale = 1280 / max(frame.shape[0], frame.shape[1])
                     show_frame = cv2.resize(frame, (0, 0), fx=scale, fy=scale)
                     cv2.imshow("YOLOv8 Inference", show_frame)
                 if args.save_dir is not None:
@@ -435,7 +435,7 @@ def main():
             if state == "start":            
                 # Get hyperparameters
                 example_idx = sport_list[args.sport]['example_idx']
-                boundary = 1
+                boundary = 10000
 
                 # Calculate mse
                 mse = calculate_mse(results[0].keypoints, example_idx, height, weight)
@@ -457,7 +457,7 @@ def main():
             if state == "redo":
                 # Get hyperparameters
                 example_idx = attention_idx
-                boundary = 1
+                boundary = 10000
 
                 # Calculate mse
                 mse = calculate_mse(results[0].keypoints, example_idx, height, weight)
