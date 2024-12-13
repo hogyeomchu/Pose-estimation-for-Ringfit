@@ -435,9 +435,14 @@ def main():
                             left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height
                         ) and (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
-                        ): 
-                            state = "start"
-                            break
+                        ):
+                            if start_time is None:  # 시작 시간 초기화
+                                start_time = time.time()
+                            elif time.time() - start_time >= 1:  # 1초 이상 경과 확인
+                                print("Start!")
+                                state = "start"
+                        else:
+                            start_time = None
 
             if state == "start":            
                 # Get hyperparameters
@@ -473,7 +478,7 @@ def main():
                 if mse < boundary:
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
-                    elif time.time() - start_time >= 1:  # 1초 이상 경과 확인
+                    elif time.time() - start_time >= 3:  # 1초 이상 경과 확인
                         print("Start!")
                         state = "start"
                 else:
