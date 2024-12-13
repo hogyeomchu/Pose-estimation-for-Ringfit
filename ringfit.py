@@ -90,11 +90,10 @@ def calculate_angle(key_points, left_points_idx, right_points_idx):
 
 ################# MSE 계산
 def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5):
-    import torch
-
     # Ensure key_points is not empty
     if key_points is None or len(key_points) == 0:
-        raise ValueError("No keypoints detected.")
+        print("No keypoints detected.")
+        return 100
 
     # Extract (x, y) coordinates and confidence values
     keypoints_tensor = key_points.data  # Tensor 형태로 데이터 접근
@@ -121,8 +120,9 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
 
     # Ensure valid keypoints to compare
     if len(valid_key_coords) == 0:
-        raise ValueError("No keypoints meet the confidence threshold.")
-
+        print("No keypoints meet the confidence threshold.")
+        return 100
+    
     # Calculate MSE
     mse = torch.mean((valid_key_coords - torch.tensor(valid_example_coords)) ** 2).item()
     print("error: ", mse)
@@ -370,7 +370,7 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
-    state = "start"  # ready, start, redo, finish
+    state = "ready"  # ready, start, redo, finish
     sports = list(sport_list.keys())
     sport_index = 0
 
@@ -428,7 +428,7 @@ def main():
                             left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height
                         ) and (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
-                        ):
+                        ): 
                             state = "start"
                             break
 
@@ -477,7 +477,7 @@ def main():
                 sport_index = (sport_index + 1) % 3
                 state = "ready"
 
-
+            print("state: ", state)
 ############################
             # Visualize the results on the frame
             annotated_frame = plot(
