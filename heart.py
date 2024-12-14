@@ -4,7 +4,7 @@ import time
 import serial
 
 try:
-    arduino = serial.Serial(port='COM3', baudrate=9600, timeout=1)  # 포트 설정
+    arduino = serial.Serial(port='/dev/ttyTHS1', baudrate=9600, timeout=1)  # jetson nano 기본 uART pin: ttyTHS*
     print("아두이노와 연결되었습니다.")
 except serial.SerialException:
     print("아두이노 연결 실패. 포트를 확인하세요.")
