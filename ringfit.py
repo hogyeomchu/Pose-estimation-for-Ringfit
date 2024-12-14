@@ -136,6 +136,84 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
 
     return mse
 
+def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
+    if key_points is None or len(key_points) == 0:
+        print("No keypoints detected.")
+        return 0  # 점수를 0으로 반환
+
+    # 기본 점수
+    basic_score = 50
+
+    # 키포인트 인덱스
+    LEFT_HIP = 11
+    RIGHT_HIP = 12
+    LEFT_KNEE = 13
+    RIGHT_KNEE = 14
+    LEFT_ANKLE = 15
+    RIGHT_ANKLE = 16
+    LEFT_SHOULDER = 5
+    RIGHT_SHOULDER = 6
+
+    # 키포인트 좌표와 confidence 추출
+    key_coords = key_points[:, :2]  # x, y 좌표
+    confidences = key_points[:, 2]  # confidence 값
+
+    # 유효한 키포인트 확인
+    valid = confidences > confidence_threshold
+
+    # 1. Hip Score (엉덩이 vs 무릎의 y 좌표)
+    hip_diff = 0
+    hip_score = 0
+    if valid[LEFT_HIP] and valid[LEFT_KNEE]:
+        left_hip_y = key_coords[LEFT_HIP, 1]
+        left_knee_y = key_coords[LEFT_KNEE, 1]
+        hip_diff += (left_knee_y - left_hip_y)
+    if valid[RIGHT_HIP] and valid[RIGHT_KNEE]:
+        right_hip_y = key_coords[RIGHT_HIP, 1]
+        right_knee_y = key_coords[RIGHT_KNEE, 1]
+        hip_diff += (right_knee_y - right_hip_y)
+
+    if hip_diff > 0:
+        hip_score = max(0, min(20, (hip_diff / 50) * 20))  # 정규화하여 최대 20점
+
+    # 2. Upper Score (어깨와 엉덩이/무릎 중앙 비교)
+    upper_score = 0
+    shoulder_center_x = None
+    hip_knee_center_x = None
+
+    if valid[LEFT_SHOULDER] and valid[RIGHT_SHOULDER]:
+        left_shoulder_x = key_coords[LEFT_SHOULDER, 0]
+        right_shoulder_x = key_coords[RIGHT_SHOULDER, 0]
+        shoulder_center_x = (left_shoulder_x + right_shoulder_x) / 2
+
+    if valid[LEFT_HIP] and valid[LEFT_KNEE] and valid[RIGHT_HIP] and valid[RIGHT_KNEE]:
+        left_hip_knee_x = (key_coords[LEFT_HIP, 0] + key_coords[LEFT_KNEE, 0]) / 2
+        right_hip_knee_x = (key_coords[RIGHT_HIP, 0] + key_coords[RIGHT_KNEE, 0]) / 2
+        hip_knee_center_x = (left_hip_knee_x + right_hip_knee_x) / 2
+
+    if shoulder_center_x is not None and hip_knee_center_x is not None:
+        upper_diff = abs(shoulder_center_x - hip_knee_center_x)
+        upper_score = max(0, min(15, (1 - (upper_diff / 100)) * 15))  # 정규화하여 최대 15점
+
+    # 3. Knee Score (무릎과 발의 x 좌표 비교)
+    knee_score = 0
+    knee_diff = 0
+    if valid[LEFT_KNEE] and valid[LEFT_ANKLE]:
+        left_knee_x = key_coords[LEFT_KNEE, 0]
+        left_ankle_x = key_coords[LEFT_ANKLE, 0]
+        knee_diff += abs(left_knee_x - left_ankle_x)
+    if valid[RIGHT_KNEE] and valid[RIGHT_ANKLE]:
+        right_knee_x = key_coords[RIGHT_KNEE, 0]
+        right_ankle_x = key_coords[RIGHT_ANKLE, 0]
+        knee_diff += abs(right_knee_x - right_ankle_x)
+
+    if knee_diff > 0:
+        knee_score = max(0, min(15, (1 - (knee_diff / 50)) * 15))  # 정규화하여 최대 15점
+
+    # 최종 점수 계산   (mse를 이용한 기본점수 50 + 엉덩이 높이 20 + 상체 기울어짐 15 + 무릎과 발 일직선 15)
+    score = basic_score + hip_score + upper_score + knee_score
+
+    return score
 #################
 
 def plot(pose_result, plot_size_redio, show_points=None, show_skeleton=None):
@@ -205,7 +283,7 @@ def plot(pose_result, plot_size_redio, show_points=None, show_skeleton=None):
     return annotator.result()
 
 
-def put_text(frame, exercise, count, fps, redio):
+def put_text(frame, exercise, count, score, redio):
     cv2.rectangle(
         frame, (int(20 * redio), int(20 * redio)), (int(300 * redio), int(163 * redio)),
         (55, 104, 0), -1
@@ -225,8 +303,11 @@ def put_text(frame, exercise, count, fps, redio):
         frame, f'Count: {count}', (int(30 * redio), int(100 * redio)), 0, 0.9 * redio,
         (255, 255, 255), thickness=int(2 * redio), lineType=cv2.LINE_AA
     )
+    #cv2.putText(
+    #    frame, f'FPS: {fps}', (int(30 * redio), int(150 * redio)), 0, 0.9 * redio,
+    #    (255, 255, 255), thickness=int(2 * redio), lineType=cv2.LINE_AA
     cv2.putText(
-        frame, f'FPS: {fps}', (int(30 * redio), int(150 * redio)), 0, 0.9 * redio,
+        frame, f'Score: {score}', (int(30 * redio), int(150 * redio)), 0, 0.9 * redio,
         (255, 255, 255), thickness=int(2 * redio), lineType=cv2.LINE_AA
     )
 
@@ -377,7 +458,7 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
-    state = "redo"  # ready, start, redo, finish
+    state = "start"  # ready, start, redo, finish
     sports = list(sport_list.keys())
     sport_index = 0
 
@@ -385,8 +466,9 @@ def main():
     reaching_last = False
     state_keep = False
     counter = 0
-
-    height, weight = get_height_and_weight()
+    score = 0
+    height, weight = 180, 70
+    # height, weight = get_height_and_weight()
 
     # Loop through the video frames
     while cap.isOpened():
@@ -405,7 +487,7 @@ def main():
             if results[0].keypoints.shape[1] == 0:
                 if args.show:
                     put_text(frame, 'No Object', counter,
-                             round(1000 / results[0].speed['inference'], 2), plot_size_redio)
+                             score, plot_size_redio)
                     scale = 1280 / max(frame.shape[0], frame.shape[1])
                     show_frame = cv2.resize(frame, (0, 0), fx=scale, fy=scale)
                     cv2.imshow("YOLOv8 Inference", show_frame)
@@ -454,15 +536,14 @@ def main():
 
                 # Determine whether to complete once
                 if mse < boundary:
+                    # 점수 계산
+                    temp_score = calculate_score(results[0].keypoints, mse, boundary)
+                    max_score = max(score, temp_score)
+                    
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 3초 이상 경과 확인
-                        print("SUCCESS!")
-                        counter += 1
-                        if counter < 10:
-                            state = "redo"
-                        else:
-                            state = "finish"
+                        state = "redo"
                 else:
                     start_time = None
 
@@ -476,15 +557,25 @@ def main():
 
                 # Determine whether to complete once
                 if mse < boundary:
+                    # 점수 계산
+                    if args.sport != "squart":
+                        temp_score = calculate_score(results[0].keypoints, mse, boundary)
+                        max_score = max(score, temp_score)
+
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 1초 이상 경과 확인
-                        print("Start!")
-                        state = "start"
+                        counter += 1
+                        score = max_score
+                        if counter < 10:
+                            state = "start"
+                        else:
+                            state = "finish"
                 else:
                     start_time = None
 
             if state == "finish":
+                counter = 0
                 args.sport = sports[sport_index]
                 sport_index = (sport_index + 1) % 3
                 state = "ready"
@@ -499,8 +590,8 @@ def main():
             )
             # annotated_frame = results[0].plot(boxes=False)
 
-            # add relevant information to frame
-            put_text(annotated_frame, args.sport, counter, round(1000 / results[0].speed['inference'], 2), plot_size_redio)
+            # add relevant information to frame  # fps = round(1000 / results[0].speed['inference'], 2)
+            put_text(annotated_frame, args.sport, counter, score, plot_size_redio)
             
 
             # Display the annotated frame
