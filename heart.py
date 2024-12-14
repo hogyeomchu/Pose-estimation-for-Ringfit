@@ -1,4 +1,3 @@
-# import serial
 import vlc
 import time
 import serial
