@@ -146,7 +146,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 디바이스 설정
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    key_points = key_points.data.to(device)
+    key_points = key_points.data.to(device)  # Keypoints를 텐서로 변환 후 디바이스로 이동
 
     # 기본 점수
     basic_score = 50
@@ -164,20 +164,15 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 키포인트 좌표와 confidence 추출
     key_coords = key_points[:, :2]  # x, y 좌표
     confidences = key_points[:, 2]  # confidence 값
-    if not isinstance(confidences, torch.Tensor):
-        confidences = torch.tensor(confidences, device=device)
-
-    # 유효한 키포인트 확인
-    valid = confidences > confidence_threshold
 
     # 1. Hip Score (엉덩이 vs 무릎의 y 좌표)
     hip_diff = 0
     hip_score = 0
-    if valid[LEFT_HIP] and valid[LEFT_KNEE]:
+    if confidences[LEFT_HIP] > confidence_threshold and confidences[LEFT_KNEE] > confidence_threshold:
         left_hip_y = key_coords[LEFT_HIP, 1]
         left_knee_y = key_coords[LEFT_KNEE, 1]
         hip_diff += (left_knee_y - left_hip_y)
-    if valid[RIGHT_HIP] and valid[RIGHT_KNEE]:
+    if confidences[RIGHT_HIP] > confidence_threshold and confidences[RIGHT_KNEE] > confidence_threshold:
         right_hip_y = key_coords[RIGHT_HIP, 1]
         right_knee_y = key_coords[RIGHT_KNEE, 1]
         hip_diff += (right_knee_y - right_hip_y)
@@ -190,12 +185,13 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     shoulder_center_x = None
     hip_knee_center_x = None
 
-    if valid[LEFT_SHOULDER] and valid[RIGHT_SHOULDER]:
+    if confidences[LEFT_SHOULDER] > confidence_threshold and confidences[RIGHT_SHOULDER] > confidence_threshold:
         left_shoulder_x = key_coords[LEFT_SHOULDER, 0]
         right_shoulder_x = key_coords[RIGHT_SHOULDER, 0]
         shoulder_center_x = (left_shoulder_x + right_shoulder_x) / 2
 
-    if valid[LEFT_HIP] and valid[LEFT_KNEE] and valid[RIGHT_HIP] and valid[RIGHT_KNEE]:
+    if (confidences[LEFT_HIP] > confidence_threshold and confidences[LEFT_KNEE] > confidence_threshold and
+        confidences[RIGHT_HIP] > confidence_threshold and confidences[RIGHT_KNEE] > confidence_threshold):
         left_hip_knee_x = (key_coords[LEFT_HIP, 0] + key_coords[LEFT_KNEE, 0]) / 2
         right_hip_knee_x = (key_coords[RIGHT_HIP, 0] + key_coords[RIGHT_KNEE, 0]) / 2
         hip_knee_center_x = (left_hip_knee_x + right_hip_knee_x) / 2
@@ -207,11 +203,11 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 3. Knee Score (무릎과 발의 x 좌표 비교)
     knee_score = 0
     knee_diff = 0
-    if valid[LEFT_KNEE] and valid[LEFT_ANKLE]:
+    if confidences[LEFT_KNEE] > confidence_threshold and confidences[LEFT_ANKLE] > confidence_threshold:
         left_knee_x = key_coords[LEFT_KNEE, 0]
         left_ankle_x = key_coords[LEFT_ANKLE, 0]
         knee_diff += abs(left_knee_x - left_ankle_x)
-    if valid[RIGHT_KNEE] and valid[RIGHT_ANKLE]:
+    if confidences[RIGHT_KNEE] > confidence_threshold and confidences[RIGHT_ANKLE] > confidence_threshold:
         right_knee_x = key_coords[RIGHT_KNEE, 0]
         right_ankle_x = key_coords[RIGHT_ANKLE, 0]
         knee_diff += abs(right_knee_x - right_ankle_x)
