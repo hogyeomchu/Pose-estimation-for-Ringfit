@@ -146,9 +146,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 디바이스 설정
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Ensure key_points is a tensor
-    if not isinstance(key_points, torch.Tensor):
-        key_points = torch.tensor(key_points, device=device)
+    key_points = key_points.data.to(device)
 
     # 기본 점수
     basic_score = 50
