@@ -597,6 +597,7 @@ def main():
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):
                             start_timer(3)
+                            scheduler.run()  # 스케줄러를 실행하여 타이머를 동작시킴
                             fsm.current_state = "start"
                         else:
                             start_time = None
