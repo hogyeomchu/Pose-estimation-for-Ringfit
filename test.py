@@ -601,7 +601,7 @@ def main():
                         else:
                             start_time = None
 
-            if state == "start":            
+            if fsm.current_state == "start":            
                 # Get hyperparameters
                 example_idx = sport_list[args.sport]['example1_idx']
                 boundary = sport_list[args.sport]['boundary']
@@ -618,11 +618,11 @@ def main():
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 3초 이상 경과 확인
-                        state = "redo"
+                        fsm.current_state = "redo"
                 else:
                     start_time = None
 
-            if state == "redo":
+            if fsm.current_state == "redo":
                 # Get hyperparameters
                 example_idx = sport_list[args.sport]['example2_idx']
                 boundary = sport_list[args.sport]['boundary']
@@ -643,19 +643,19 @@ def main():
                         counter += 1
                         #score = max_score
                         if counter < 10:
-                            state = "start"
+                            fsm.current_state = "start"
                         else:
-                            state = "finish"
+                            fsm.current_state = "finish"
                 else:
                     start_time = None
 
-            if state == "finish":
+            if fsm.current_state == "finish":
                 counter = 0
                 args.sport = sports[sport_index]
                 sport_index = (sport_index + 1) % 3
-                state = "ready"
+                fsm.current_state = "ready"
 
-            print("state: ", state)
+            print("state: ", fsm.current_state)
 ############################
             # Visualize the results on the frame
             annotated_frame = plot(
