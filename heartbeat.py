@@ -60,4 +60,10 @@ try:
 
         # 10초마다 간격 리스트 정리
         if len(pulse_intervals) > 1 and time.time() - pulse_intervals[0] > 10:
-            pulse_intervals = pulse_intervals[-1:]  
+            pulse_intervals = pulse_intervals[-1:]  # 마지막 값만 유지
+
+except KeyboardInterrupt:
+    print("프로그램 종료.")
+
+finally:
+    GPIO.cleanup()
