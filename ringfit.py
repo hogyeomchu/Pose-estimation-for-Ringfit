@@ -449,6 +449,7 @@ def get_height_and_weight():
 
 
 def main():
+    print(f"DISPLAY: {os.getenv('DISPLAY')}")
     # Obtain relevant parameters
     args = parse_args()
     # Load the YOLOv8 model
@@ -482,8 +483,8 @@ def main():
     state_keep = False
     counter = 0
     score = 0
-    height, weight = 180, 70
-    # height, weight = get_height_and_weight()
+    # height, weight = 180, 70
+    height, weight = get_height_and_weight()
 
     # Loop through the video frames
     while cap.isOpened():
