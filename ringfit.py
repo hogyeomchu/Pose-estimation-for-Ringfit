@@ -109,7 +109,9 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     keypoints_tensor = key_points.data.to(device)  # Ensure tensor is on the selected device
     key_coords = keypoints_tensor[0, :, :2]  # Extract (x, y) coordinates
     confidences = keypoints_tensor[0, :, 2]  # Extract confidence values
-
+    if not isinstance(confidences, torch.Tensor):
+        confidences = torch.tensor(confidences, device=device)
+        
     # Convert example to NumPy array and extract its confidence values
     example_np = np.array(example)  # example의 shape은 (17, 3) 형태로 가정
     example_coords = torch.tensor(example_np[:, :2], device=device)  # Move example_coords to the same device
