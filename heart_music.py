@@ -30,7 +30,7 @@ import serial
 
 
 def music():
-    player = vlc.MediaPlayer("C:/Users/skydk/Desktop/Pose-estimation-for-Ringfit/music.mp3")  # VLC 인스턴스 생성
+    player = vlc.MediaPlayer("nvidia@nvidia-desktop:~/Pose-estimation-for-Ringfit/music.mp3")  # VLC 인스턴스 생성
     player.set_rate(1)
     player.play()
     time.sleep(100000)  # 음악 길이에 맞게 조정
