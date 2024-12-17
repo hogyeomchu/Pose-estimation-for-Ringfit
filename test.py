@@ -535,6 +535,7 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
+    fsm = FSM()
     # state = "ready"  # ready, start, redo, finish
     sports = list(sport_list.keys())
     sport_index = 0
@@ -576,7 +577,7 @@ def main():
                 continue
 ########################## 고쳐야 할 부분 FSM 넣기
                     
-            if state == "ready":
+            if fsm.current_state == "ready":
                 # 바운딩 박스 넣어보기 안될 수도 있음
                 bbox_x, bbox_y, bbox_width, bbox_height = 540, 700, 200, 75
                 cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 0, 255), 2)
@@ -596,7 +597,7 @@ def main():
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):
                             start_timer(3)
-                            state = "start"
+                            fsm.current_state = "start"
                         else:
                             start_time = None
 
