@@ -1,45 +1,61 @@
-from collections import deque
 import Jetson.GPIO as GPIO
 import time
+from collections import deque
 
 # GPIO 핀 설정
 HEARTBEAT_PIN = 12
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(HEARTBEAT_PIN, GPIO.IN)
 
-# 심박수 계산 변수
-pulse_count = 0
-start_time = time.time()
-pulse_history = deque(maxlen=10)
+# 전역 변수
+pulse_intervals = []
+bpm_history = deque(maxlen=10)
+last_pulse_time = 0
 
 def heartbeat_callback(channel):
-    global pulse_count
-    pulse_count += 1
+    """
+    GPIO 인터럽트 콜백 함수. 펄스 간격 기록.
+    """
+    global pulse_intervals, last_pulse_time
+    current_time = time.time()
+    if current_time - last_pulse_time > 0.3:  # 최소 펄스 간격 (300ms)
+        pulse_intervals.append(current_time)
+        last_pulse_time = current_time
+
+def calculate_bpm():
+    """
+    기록된 펄스 간격을 기반으로 BPM 계산.
+    """
+    global pulse_intervals
+    if len(pulse_intervals) > 1:
+        intervals = [pulse_intervals[i] - pulse_intervals[i-1] for i in range(1, len(pulse_intervals))]
+        avg_interval = sum(intervals) / len(intervals)
+        bpm = 60 / avg_interval
+        return bpm
+    return 0
 
 def smooth_bpm(new_bpm):
-    pulse_history.append(new_bpm)
-    return sum(pulse_history) / len(pulse_history)
+    """
+    스무딩된 BPM 계산 (Moving Average).
+    """
+    bpm_history.append(new_bpm)
+    return sum(bpm_history) / len(bpm_history)
 
-# GPIO Interrupt 설정
+# GPIO 이벤트 감지
 GPIO.add_event_detect(HEARTBEAT_PIN, GPIO.RISING, callback=heartbeat_callback)
 
 try:
     while True:
-        elapsed_time = time.time() - start_time
-        if elapsed_time >= 10:
-            if pulse_count > 0:
-                bpm = (pulse_count / elapsed_time) * 60
-                bpm = smooth_bpm(bpm)
-                print(f"스무딩된 심박수: {bpm:.2f} BPM")
-            else:
-                print("펄스 신호를 감지하지 못했습니다.")
-
-            pulse_count = 0
-            start_time = time.time()
-
-        time.sleep(0.1)
+        time.sleep(1)
+        bpm = calculate_bpm()
+        if bpm > 0:
+            bpm = smooth_bpm(bpm)
+            print(f"스무딩된 심박수: {bpm:.2f} BPM")
+        else:
+            print("펄스 감지 중...")
 
 except KeyboardInterrupt:
     print("프로그램 종료.")
+
 finally:
     GPIO.cleanup()
