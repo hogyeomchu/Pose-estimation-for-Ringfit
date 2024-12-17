@@ -18,9 +18,11 @@ def heartbeat_callback(channel):
     """
     global pulse_intervals, last_pulse_time
     current_time = time.time()
-    if current_time - last_pulse_time > 0.3:  # 최소 펄스 간격 (300ms)
+    interval = current_time - last_pulse_time
+    if 0.2 < interval < 2.0:  # 최소/최대 간격 필터
         pulse_intervals.append(current_time)
         last_pulse_time = current_time
+        print(f"Pulse detected at {current_time:.2f} (Interval: {interval:.2f} sec)")
 
 def calculate_bpm():
     """
@@ -46,13 +48,17 @@ GPIO.add_event_detect(HEARTBEAT_PIN, GPIO.RISING, callback=heartbeat_callback)
 
 try:
     while True:
-        time.sleep(1)
+        time.sleep(2)  # 2초 간격으로 BPM 계산
         bpm = calculate_bpm()
         if bpm > 0:
             bpm = smooth_bpm(bpm)
             print(f"스무딩된 심박수: {bpm:.2f} BPM")
         else:
             print("펄스 감지 중...")
+
+        # 일정 시간(10초)마다 간격 초기화
+        if len(pulse_intervals) > 1 and time.time() - pulse_intervals[0] > 10:
+            pulse_intervals = pulse_intervals[-1:]  # 마지막 값만 유지
 
 except KeyboardInterrupt:
     print("프로그램 종료.")
