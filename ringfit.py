@@ -470,7 +470,7 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
-    state = "ready"  # ready, start, redo, finish
+    state = "start"  # ready, start, redo, finish
     sports = list(sport_list.keys())
     sport_index = 0
 
