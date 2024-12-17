@@ -552,8 +552,8 @@ def main():
                 # Determine whether to complete once
                 if mse < boundary:
                     # 점수 계산
-                    temp_score = calculate_score(results[0].keypoints, mse, boundary)
-                    max_score = max(score, temp_score)
+                    #temp_score = calculate_score(results[0].keypoints, mse, boundary)
+                    #max_score = max(score, temp_score)
                     
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
@@ -573,15 +573,15 @@ def main():
                 # Determine whether to complete once
                 if mse < boundary:
                     # 점수 계산
-                    if args.sport != "squart":
-                        temp_score = calculate_score(results[0].keypoints, mse, boundary)
-                        max_score = max(score, temp_score)
+                    #if args.sport != "squart":
+                        #temp_score = calculate_score(results[0].keypoints, mse, boundary)
+                        #max_score = max(score, temp_score)
 
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 1초 이상 경과 확인
                         counter += 1
-                        score = max_score
+                        #score = max_score
                         if counter < 10:
                             state = "start"
                         else:
