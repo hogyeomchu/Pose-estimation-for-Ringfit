@@ -102,34 +102,34 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
         print("No keypoints detected.")
         return 99999
 
+    # Automatically detect device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # Extract (x, y) coordinates and confidence values
-    keypoints_tensor = key_points.data  # Tensor 형태로 데이터 접근
+    keypoints_tensor = key_points.data.to(device)  # Ensure tensor is on the selected device
     key_coords = keypoints_tensor[0, :, :2]  # Extract (x, y) coordinates
     confidences = keypoints_tensor[0, :, 2]  # Extract confidence values
 
     # Convert example to NumPy array and extract its confidence values
     example_np = np.array(example)  # example의 shape은 (17, 3) 형태로 가정
-    example_coords = example_np[:, :2]  # (x, y) coordinates
-    example_confidences = example_np[:, 2]  # confidence values
+    example_coords = torch.tensor(example_np[:, :2], device=device)  # Move example_coords to the same device
+    example_confidences = torch.tensor(example_np[:, 2], device=device)  # Move example_confidences to the same device
 
     # Filter keypoints based on confidence
-    valid_indices = (confidences > confidence_threshold) & (torch.tensor(example_confidences) > confidence_threshold)
+    valid_indices = (confidences > confidence_threshold) & (example_confidences > confidence_threshold)
     valid_indices = valid_indices.bool()  # Ensure valid_indices is torch.bool
 
     valid_key_coords = key_coords[valid_indices]
-    valid_example_coords = example_coords[valid_indices.cpu().numpy(), :]  # Ensure alignment
+    valid_example_coords = example_coords[valid_indices, :]  # Ensure alignment
 
     # Ensure valid keypoints to compare
     if len(valid_key_coords) == 0:
         print("No keypoints meet the confidence threshold.")
         return 99999
-       
-    # Calculate MSE
-    # x_error = keypoints_tensor[0][16][0] - example[16][0]
-    # y_error = keypoints_tensor[0][16][1] - example[16][1]
 
-    x_diff = ((valid_key_coords[:, 0] - keypoints_tensor[0][16][0]) - (valid_example_coords[:, 0] - example[16][0]))
-    y_diff = ((valid_key_coords[:, 1] - keypoints_tensor[0][16][1]) / (height * 0.01) - ((valid_example_coords[:, 1]) - example[16][1]) / 1.84)
+    # Calculate MSE
+    x_diff = (valid_key_coords[:, 0] / weight - valid_example_coords[:, 0] / weight)
+    y_diff = (valid_key_coords[:, 1] / height - valid_example_coords[:, 1] / height)
 
     mse = torch.mean(x_diff ** 2 + y_diff ** 2).item()
     print("error: ", mse)
@@ -458,7 +458,7 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
-    state = "start"  # ready, start, redo, finish
+    state = "ready"  # ready, start, redo, finish
     sports = list(sport_list.keys())
     sport_index = 0
 
