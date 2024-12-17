@@ -13,7 +13,7 @@ def heartbeat_callback(channel):
     current_time = time.time()
     interval = current_time - last_pulse_time
     
-    if interval > 0.2:  # 최소 간격 조건 제거
+    if interval > 0:  # 최소 간격 조건 제거
         pulse_intervals.append(current_time)
         last_pulse_time = current_time
         print(f"Pulse detected at {current_time:.2f} (Interval: {interval:.2f} sec)")
