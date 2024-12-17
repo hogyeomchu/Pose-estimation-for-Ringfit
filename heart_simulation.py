@@ -4,7 +4,7 @@ import threading
 
 # 시리얼 포트와 보드레이트 설정
 SERIAL_PORT = "/dev/ttyTHS1"  # Jetson의 UART 포트 (TX, RX 핀)
-BAUD_RATE = 9600  # 아두이노와 동일한 보드레이트 설정
+BAUD_RATE = 115200  # 아두이노와 동일한 보드레이트 설정
 
 # 전역 변수
 heartbeat_data = None  # 심박수 데이터 저장

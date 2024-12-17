@@ -8,6 +8,7 @@ import argparse
 import pygame
 import sys
 import time
+import sched
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
