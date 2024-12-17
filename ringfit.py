@@ -111,7 +111,7 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     confidences = keypoints_tensor[0, :, 2]  # Extract confidence values
     if not isinstance(confidences, torch.Tensor):
         confidences = torch.tensor(confidences, device=device)
-        
+
     # Convert example to NumPy array and extract its confidence values
     example_np = np.array(example)  # example의 shape은 (17, 3) 형태로 가정
     example_coords = torch.tensor(example_np[:, :2], device=device)  # Move example_coords to the same device
@@ -143,6 +143,16 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
         print("No keypoints detected.")
         return 0  # 점수를 0으로 반환
 
+    # 디바이스 설정
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Ensure key_points is a tensor
+    if not isinstance(key_points, torch.Tensor):
+        key_points = torch.tensor(key_points, device=device)
+
+    # Ensure key_points is on the correct device
+    key_points = key_points.to(device)
+
     # 기본 점수
     basic_score = 50
 
@@ -159,6 +169,8 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 키포인트 좌표와 confidence 추출
     key_coords = key_points[:, :2]  # x, y 좌표
     confidences = key_points[:, 2]  # confidence 값
+    if not isinstance(confidences, torch.Tensor):
+        confidences = torch.tensor(confidences, device=device)
 
     # 유효한 키포인트 확인
     valid = confidences > confidence_threshold
@@ -212,10 +224,11 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     if knee_diff > 0:
         knee_score = max(0, min(15, (1 - (knee_diff / 50)) * 15))  # 정규화하여 최대 15점
 
-    # 최종 점수 계산   (mse를 이용한 기본점수 50 + 엉덩이 높이 20 + 상체 기울어짐 15 + 무릎과 발 일직선 15)
+    # 최종 점수 계산
     score = basic_score + hip_score + upper_score + knee_score
 
     return score
+
 #################
 
 def plot(pose_result, plot_size_redio, show_points=None, show_skeleton=None):
