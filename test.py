@@ -7,6 +7,7 @@ import datetime
 import argparse
 import pygame
 import sys
+import threading
 import time
 import sched
 from ultralytics import YOLO
@@ -509,6 +510,12 @@ def get_height_and_weight():
     return float(height), float(weight)
 
 
+def run_scheduler():
+    scheduler.run()  # 스케줄러 실행
+
+
+
+
 def main():
     print(f"DISPLAY: {os.getenv('DISPLAY')}")
     # Obtain relevant parameters
@@ -597,7 +604,9 @@ def main():
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):
                             start_timer(3)
-                            scheduler.run()  # 스케줄러를 실행하여 타이머를 동작시킴
+                            scheduler_thread = threading.Thread(target=run_scheduler)
+                            scheduler_thread.daemon = True  # 프로그램 종료 시 스레드도 종료되도록 설정
+                            scheduler_thread.start()
                             fsm.current_state = "start"
                         else:
                             start_time = None
