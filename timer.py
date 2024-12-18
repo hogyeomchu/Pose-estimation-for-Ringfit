@@ -1,10 +1,7 @@
 import sched
 import time 
 import cv2 
-
-
 import Jetson.GPIO as GPIO
-
 from datetime import datetime
 
 # GPIO 핀 번호

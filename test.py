@@ -599,7 +599,7 @@ def main():
                         left_x, left_y, left_conf = left_ankle
                         right_x, right_y, right_conf = right_ankle
 
-                        if (
+                        if (    # bounding box에 발 keypoint가 들어오는지 확인
                             left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height
                         ) and (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
