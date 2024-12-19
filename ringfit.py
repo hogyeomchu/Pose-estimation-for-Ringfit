@@ -105,33 +105,35 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     # Automatically detect device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Move key_points data to the device
-    key_points = key_points.data.to(device)
+    # Extract (x, y) coordinates and confidence values
+    keypoints_tensor = key_points.data.to(device)  # Ensure tensor is on the selected device
+    key_coords = keypoints_tensor[0, :, :2]  # Extract (x, y) coordinates
+    confidences = keypoints_tensor[0, :, 2]  # Extract confidence values
+    if not isinstance(confidences, torch.Tensor):
+        confidences = torch.tensor(confidences, device=device)
 
-    # Convert example to tensor and move to the device
+    # Convert example to NumPy array and extract its confidence values
     example_np = np.array(example)  # example의 shape은 (17, 3) 형태로 가정
-    example_tensor = torch.tensor(example_np, device=device)
+    example_coords = torch.tensor(example_np[:, :2], device=device)  # Move example_coords to the same device
+    example_confidences = torch.tensor(example_np[:, 2], device=device)  # Move example_confidences to the same device
 
     # Filter keypoints based on confidence
-    valid_indices = (key_points[0, :, 2] > confidence_threshold) & (example_tensor[:, 2] > confidence_threshold)
+    valid_indices = (confidences > confidence_threshold) & (example_confidences > confidence_threshold)
+    valid_indices = valid_indices.bool()  # Ensure valid_indices is torch.bool
 
-    # Ensure valid_indices is boolean tensor
-    valid_indices = valid_indices.bool()
-
-    # Filter valid keypoints and example points
-    valid_key_points = key_points[0, valid_indices, :]
-    valid_example_points = example_tensor[valid_indices, :]
+    valid_key_coords = key_coords[valid_indices]
+    valid_example_coords = example_coords[valid_indices, :]  # Ensure alignment
 
     # Ensure valid keypoints to compare
-    if valid_key_points.size(0) == 0:
+    if len(valid_key_coords) == 0:
         print("No keypoints meet the confidence threshold.")
         return 99999
 
     # Calculate MSE
     weight = 0.01 * weight
     height = 0.01 * height
-    x_diff = (valid_key_points[:, 0] - valid_example_points[:, 0])
-    y_diff = (valid_key_points[:, 1] / height - valid_example_points[:, 1] / height)
+    x_diff = (valid_key_coords[:, 0] / weight - valid_example_coords[:, 0] / weight)
+    y_diff = (valid_key_coords[:, 1] / height - valid_example_coords[:, 1] / height)
 
     mse = torch.mean(x_diff ** 2 + y_diff ** 2).item()
     print("error: ", mse)
