@@ -1,59 +1,78 @@
 import vlc
 import time
 import serial
-
-# try:
-#     arduino = serial.Serial(port='/dev/ttyTHS1', baudrate=9600, timeout=1)  # jetson nano 기본 uART pin: ttyTHS*
-#     print("아두이노와 연결되었습니다.")
-# except serial.SerialException:
-#     print("아두이노 연결 실패. 포트를 확인하세요.")
-#     exit()
+import Jetson.GPIO as GPIO
 
 
-
-# def read_data():
-#     try:
-#         # 시리얼 데이터 읽기
-#         data = arduino.readline().decode('utf-8').strip()  # 데이터 읽기 및 디코딩
-#         if data:
-#             heart_data = int(data)  # 정수로 변환
-#             return heart_data
-#         else:
-#             print("경고: 데이터를 읽을 수 없습니다.")
-#             return None
-#     except ValueError:
-#         print("경고: 데이터 형식이 잘못되었습니다.")
-#         return None
-#     except Exception as e:
-#         print(f"예기치 않은 오류 발생: {e}")
-#         return None
+def heartbeat_callback(channel):
+    global pulse_intervals, last_pulse_time
+    current_time = time.time()
+    interval = current_time - last_pulse_time
+    
+    if interval > 0:  # 최소 간격 조건 제거
+        pulse_intervals.append(current_time)
+        last_pulse_time = current_time
+        print(f"Pulse detected at {current_time:.2f} (Interval: {interval:.2f} sec)")
 
 
-def music():
-    player = vlc.MediaPlayer("nvidia@nvidia-desktop:~/Pose-estimation-for-Ringfit/music.mp3")  # VLC 인스턴스 생성
+HEARTBEAT_PIN = 12
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(HEARTBEAT_PIN, GPIO.IN)
+GPIO.add_event_detect(HEARTBEAT_PIN, GPIO.RISING, callback= heartbeat_callback)
+
+
+pulse_intervals = []
+last_pulse_time = 0
+
+def music(beat):
+    player = vlc.MediaPlayer("./Pose-estimation-for-Ringfit/music.mp3")  # nvidia@nvidia-desktop:~/Pose-estimation-for-Ringfit
+    beep = vlc.MediaPlayer("./Pose-estimation-for-Ringfit/beep_sound.mp3")
     player.set_rate(1)
     player.play()
-    time.sleep(100000)  # 음악 길이에 맞게 조정
-    # if(heart_data > 100):
-    #         player.set_rate(1.5)
-    # elif (heart_data > 90):
-    #         player.set_rate(1.2)
-    # else:
-            
+    
+    if beat > 100 :
+        beep.set_rate(1.2)
+        beep.play()
+        time.sleep(5)
+        while True:
+            if beat < 80:
+                break
+    elif beat > 90:
+        player.set_rate(1.25)
+    
+   
+
+
+def music_heart():
+    try: 
+        while True:
+            if len(pulse_intervals) > 1:
+                intervals = [pulse_intervals[i] - pulse_intervals[i-1] for i in range(1, len(pulse_intervals))]
+                avg_interval = sum(intervals) / len(intervals)
+                bpm = 60 / avg_interval
+                print(f"Current BPM: {bpm:.2f}")        #### 이거 put text로 바꾸자 
+                music(bpm)
+        
+    except KeyboardInterrupt:
+        print("프로그램 종료.")
+    finally:
+        GPIO.cleanup()
 
 
 
+        
 
-# 음악이 끝날 때까지 대기
-
-
-# 음악 종료
-# player.stop()
+    
+    
 
 
+def main():
+    music_heart()
+    
 
 
-
+if __name__ == "__main__":
+    main()
 
 
 
