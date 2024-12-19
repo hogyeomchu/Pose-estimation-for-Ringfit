@@ -12,6 +12,7 @@ from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
 
+import timer3 as timer
 
 
 sport_list = {
@@ -20,7 +21,7 @@ sport_list = {
         'right_points_idx': [5, 11, 13],
         'maintaining': 70,
         'relaxing': 110,
-        'boundary': 20000,
+        'boundary': 2000,
         'concerned_key_points_idx': [5, 6, 11, 12, 13, 14],
         'concerned_skeletons_idx': [[14, 12], [15, 13], [6, 12], [7, 13]],
         'example1_idx':  [[827.2361450195312, 348.7127685546875, 0.6343599557876587], [0.0, 0.0, 0.07872648537158966], [812.6150512695312, 340.96697998046875, 0.7598568797111511], [0.0, 0.0, 0.07045243680477142], [784.4114990234375, 352.44903564453125, 0.9502374529838562], [768.4188842773438, 423.96343994140625, 0.8846271634101868], [784.532958984375, 414.65484619140625, 0.999079704284668], [0.0, 0.0, 0.21771305799484253], [776.4591674804688, 501.06011962890625, 0.9966193437576294], [0.0, 0.0, 0.15781749784946442], [792.6640625, 562.5013427734375, 0.980634331703186], [748.17041015625, 591.1649780273438, 0.9830169081687927], [781.72412109375, 582.54150390625, 0.9986773133277893], [752.1775512695312, 684.2326049804688, 0.9479348063468933], [917.7450561523438, 629.0517578125, 0.9960450530052185], [634.452392578125, 731.0155029296875, 0.8735394477844238], [900.0355834960938, 739.8284301757812, 0.9781225919723511]], # 여기에 예시 스켈레톤 넣기
@@ -213,7 +214,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 최종 점수 계산
     score = basic_score + hip_score + upper_score + knee_score
 
-    return score
+    return int(score)
 
 #################
 
@@ -468,6 +469,7 @@ def main():
     state_keep = False
     start_time = None 
     counter = 0
+    max_score = 0
     score = 0
     height, weight = 180, 70
     # height, weight = get_height_and_weight()
@@ -520,13 +522,10 @@ def main():
                         ) or (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):
-                            if start_time is None:  # 시작 시간 초기화
-                                start_time = time.time()
-                            elif time.time() - start_time >= 1:  # 1초 이상 경과 확인
-                                print("Start!")
-                                state = "start"
+                            timer.start_timer(3)
+                            state = "start"
                         else:
-                            start_time = None
+                            timer.stop_timer()
 
             if state == "start":            
                 # Get hyperparameters
@@ -540,7 +539,7 @@ def main():
                 if mse < boundary:
                     # 점수 계산
                     temp_score = calculate_score(results[0].keypoints, mse, boundary)
-                    max_score = max(score, temp_score)
+                    max_score = max(max_score, temp_score)
                     
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
@@ -562,13 +561,14 @@ def main():
                     # 점수 계산
                     if args.sport != "squart":
                         temp_score = calculate_score(results[0].keypoints, mse, boundary)
-                        max_score = max(score, temp_score)
+                        max_score = max(max_score, temp_score)
 
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 1초 이상 경과 확인
                         counter += 1
                         score = max_score
+                        max_score = 0
                         if counter < 10:
                             state = "start"
                         else:
