@@ -24,8 +24,8 @@ pulse_intervals = []
 last_pulse_time = 0
 
 def music(beat):
-    player = vlc.MediaPlayer("./Pose-estimation-for-Ringfit/music.mp3")  # nvidia@nvidia-desktop:~/Pose-estimation-for-Ringfit
-    beep = vlc.MediaPlayer("./Pose-estimation-for-Ringfit/beep_sound.mp3")
+    player = vlc.MediaPlayer("./music.mp3")  # nvidia@nvidia-desktop:~/Pose-estimation-for-Ringfit
+    beep = vlc.MediaPlayer("./beep_sound.mp3")
     player.set_rate(1)
     player.play()
     
