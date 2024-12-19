@@ -50,7 +50,8 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             #     stop_timer()
             if duration == 0:
                 timer_over = True 
-                print("타이머 종료!")
+                print("타이머 종료!", timer_over)
+                
 
 
         
