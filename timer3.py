@@ -30,13 +30,14 @@ def stop_timer():           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # 타이머 시작 함수
 def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     global timer_running
+    global timer_over
     # if timer_running:  # 이미 타이머가 실행 중이면 중단
     #     stop_timer()
 
     timer_running = True
     timer_over = False 
     timer_event.clear()  # 이벤트 초기화
-    print(f"타이머 시작! {duration}초")
+    print(f"타이머 시작!")
 
     def timer_task():
         nonlocal duration
@@ -46,25 +47,20 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             print(f"남은 시간: {duration}초")
             time.sleep(1)
             duration -= 1
-            # if duration == 1:
-            #     stop_timer()
-            if duration == 0:
-                timer_over = True 
-                print("타이머 종료!", timer_over)
-                
-
-
         
         timer_running = False
+        timer_over = True
+        print(timer_over)
     threading.Thread(target=timer_task, daemon=True).start()
-    return timer_over
 
 
-def time_over():
-    return timer_over
-
-def time_running():
+# 상태 확인 함수
+def is_timer_running():
     return timer_running
+
+def is_timer_over():
+    return timer_over
+
 
 # GPIO 핀 상태 업데이트
 def update_gpio_state():        # parameter를 받아서?
