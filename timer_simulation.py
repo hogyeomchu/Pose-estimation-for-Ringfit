@@ -4,7 +4,7 @@ import threading
 import time
 
 # GPIO 핀 설정
-interrupt_pin = 18  # GPIO 핀 번호 (BOARD 모드 기준)
+interrupt_pin = 33  # GPIO 핀 번호 (BOARD 모드 기준)
 boundary = 100  # 임계값
 
 # 전역 변수
@@ -21,7 +21,7 @@ timer_event = threading.Event()
 # GPIO 초기화
 def setup_gpio():
     GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
-    GPIO.setup(interrupt_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 핀 설정 (입력 핀으로 설정)
+    GPIO.setup(interrupt_pin, GPIO.OUT, initial =1)  # 핀 설정 (입력 핀으로 설정)
     GPIO.add_event_detect(interrupt_pin, GPIO.FALLING, callback=interrupt_handler, bouncetime=300)  # 인터럽트 설정: interrupt_pin(output pin)이 기본적으로 1이다가 0으로 떨어지는 falling edge에 callback 함수 호출
 
 # 인터럽트 핸들러 함수
@@ -51,39 +51,53 @@ def cleanup_gpio():
 ##############################################################################################################################################
 
 
-
-
-
-# 타이머 감소 함수
-def countdown_timer():
-    global remaining_time, timer_running
-    if remaining_time > 0:
-        print("time left: ", remaining_time)
-        remaining_time -= 1  # 남은 시간 1초 감소
-        threading.Timer(1, countdown_timer).start()  # 1초 후에 다시 실행
-    else:
-        print("timer 종료!") 
-        timer_running = False  # 타이머 종료
-
-
-# 타이머 함수
-def start_timer(duration):
+# 타이머 종료 함수
+def stop_timer():           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
     global timer_running
+    timer_event.set()  # 이벤트를 설정하여 타이머를 중단
+    timer_running = False
+    GPIO.output(interrupt_pin, GPIO.HIGH)
+    print("타이머 중단 및 초기화")
+
+
+# # 타이머 감소 함수
+# def countdown_timer():
+#     global remaining_time, timer_running
+#     if remaining_time > 0:
+#         print("time left: ", remaining_time)
+#         remaining_time -= 1  # 남은 시간 1초 감소
+#         threading.Timer(1, countdown_timer).start()  # 1초 후에 다시 실행
+#     else:
+#         print("timer 종료!") 
+#         timer_running = False  # 타이머 종료
+
+
+# 타이머 시작 함수
+def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    global timer_running
+    if timer_running:  # 이미 타이머가 실행 중이면 중단
+        stop_timer()
+
     timer_running = True
+    timer_event.clear()  # 이벤트 초기화
     print(f"타이머 시작! {duration}초")
-    # timer_event.clear()
 
     def timer_task():
-        global timer_running
-        time_remaining = duration
-        while time_remaining > 0:
-            if timer_event.is_set():
-                print("타이머 중단됨.")
-                timer_running = False
+        nonlocal duration
+        while duration > 0:
+            if timer_event.is_set():  # 이벤트가 설정되면 중단
                 return
-            countdown_timer()
-    threading.Thread(target=timer_task).start()
+            print(f"남은 시간: {duration}초")
+            time.sleep(1)
+            duration -= 1
+            if duration == 1:
+                stop_timer()
 
+
+        print("타이머 종료!")
+        timer_running = False
+
+    threading.Thread(target=timer_task, daemon=True).start()
 
 
 
