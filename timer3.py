@@ -47,26 +47,20 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             print(f"남은 시간: {duration}초")
             time.sleep(1)
             duration -= 1
-            # if duration == 1:
-            #     stop_timer()
-            if duration == 0:
-                print("타이머 종료!")
-                
-
-
         
         timer_running = False
         timer_over = True
+        print(timer_over)
     threading.Thread(target=timer_task, daemon=True).start()
 
 
-def time_over():
-    global timer_over
+# 상태 확인 함수
+def is_timer_running():
+    return timer_running
+
+def is_timer_over():
     return timer_over
 
-def time_running():
-    global timer_running
-    return timer_running
 
 # GPIO 핀 상태 업데이트
 def update_gpio_state():        # parameter를 받아서?
