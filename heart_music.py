@@ -1,6 +1,5 @@
 import vlc
 import time
-import serial
 import Jetson.GPIO as GPIO
 
 
