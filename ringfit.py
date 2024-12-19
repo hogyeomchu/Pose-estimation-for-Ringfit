@@ -522,15 +522,13 @@ def main():
                         ) or (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):  
-                            if timer.timer_running == False:
+                            if timer.time_running() == False:
                                 timer.start_timer(3)
                             
-                            print(timer.timer_over)
-                            if timer.timer_over == True:
+                            if timer.time_over() == True:
                                 state = "start"
-                                print("ㅅㅂ 왜 안돼")
                         else:
-                            if timer.timer_running == True:
+                            if timer.time_running() == True:
                                 timer.stop_timer()
 
             if state == "start":            

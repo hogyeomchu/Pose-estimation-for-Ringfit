@@ -59,6 +59,13 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     threading.Thread(target=timer_task, daemon=True).start()
 
+
+def time_over():
+    return timer_over
+
+def time_running():
+    return timer_running
+
 # GPIO 핀 상태 업데이트
 def update_gpio_state():        # parameter를 받아서?
     global a, timer_running
