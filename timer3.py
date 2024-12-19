@@ -36,7 +36,7 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     timer_running = True
     timer_over = False 
     timer_event.clear()  # 이벤트 초기화
-    print(f"타이머 시작! {duration}초")
+    print(f"타이머 시작!")
 
     def timer_task():
         nonlocal duration
@@ -60,9 +60,11 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 def time_over():
+    global timer_over
     return timer_over
 
 def time_running():
+    global timer_running
     return timer_running
 
 # GPIO 핀 상태 업데이트
