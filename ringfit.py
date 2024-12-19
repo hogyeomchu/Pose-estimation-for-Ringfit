@@ -473,7 +473,7 @@ def main():
     score = 0
     height, weight = 180, 70
     # height, weight = get_height_and_weight()
-
+    timer.setup_gpio()
     # Loop through the video frames
     while cap.isOpened():
         # Read a frame from the video
@@ -616,6 +616,7 @@ def main():
 
     # Release the video capture object and close the display window
     cap.release()
+    timer.GPIO.cleanup()
     if args.save_dir is not None:
         output.release()
     cv2.destroyAllWindows()
