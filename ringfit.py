@@ -593,11 +593,10 @@ def main():
                             if time_ck == 0:
                                 start_timer(3)
                                 time_ck == 1
-                            print(is_timer_over)
-                            if is_timer_over and time_ck == 1:
+                            
+                            if is_timer_over() and time_ck == 1:
                                 state = "start"
                                 time_ck = 0
-                                print("어디서 멈추는겨")
 
                         else:
                             if is_timer_running():
