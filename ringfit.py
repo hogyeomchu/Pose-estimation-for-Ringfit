@@ -9,6 +9,8 @@ import pygame
 import sys
 import time
 import logging
+import threading
+import Jetson.GPIO as GPIO
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
@@ -220,6 +222,55 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     return int(score)
 
 #################
+timer_running = False           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+timer_over = False
+timer_event = threading.Event()   
+
+# 타이머 종료 함수
+def stop_timer():           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    global timer_running
+    timer_event.set()  # 이벤트를 설정하여 타이머를 중단
+    timer_running = False
+    print("타이머 중단 및 초기화")
+
+
+
+
+# 타이머 시작 함수
+def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    global timer_running
+    global timer_over
+    if timer_running:  # 이미 타이머가 실행 중이면 중단
+        return
+
+    timer_running = True
+    timer_over = False 
+    timer_event.clear()  # 이벤트 초기화
+    print(f"타이머 시작!")
+
+    def timer_task():
+        nonlocal duration
+        while duration > 0:
+            if timer_event.is_set():  # 이벤트가 설정되면 중단
+                return
+            print(f"남은 시간: {duration}초")
+            time.sleep(1)
+            duration -= 1
+        
+        timer_running = False
+        timer_over = True
+        print(timer_over)
+    threading.Thread(target=timer_task, daemon=True).start()
+
+
+# 상태 확인 함수
+def is_timer_running():
+    return timer_running
+
+def is_timer_over():
+    return timer_over
+##########################################################
+
 
 def plot(pose_result, plot_size_redio, show_points=None, show_skeleton=None):
     class _Annotator(Annotator):
@@ -524,18 +575,14 @@ def main():
                             (left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height)
                             or (right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height)
                         ):
-                            # 타이머가 실행 중이 아니면 시작
-                            print("실행중", timer.is_timer_running())
-                            if not timer.is_timer_running():
+                            if not is_timer_running():
                                 timer.start_timer(3)
 
-                            print("끝났니", timer.is_timer_over())
-                            if timer.is_timer_over():  # 타이머가 종료되었으면 상태 업데이트
+                            if is_timer_over:
                                 state = "start"
-                            time.sleep(1)
+
                         else:
-                            if timer.is_timer_running():  # 타이머가 실행 중이면 중단
-                                timer.stop_timer()
+                            stop_timer()
 
             if state == "start":            
                 # Get hyperparameters
