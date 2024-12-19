@@ -9,7 +9,6 @@ import pygame
 import sys
 import threading
 import time
-import sched
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
@@ -57,16 +56,17 @@ sport_list = {
 # 타이머 관련 변수 설정
 timer_running = False  # 타이머 실행 여부
 remaining_time = 3  # 초기 타이머 시간 설정 (초 단위)
-scheduler = sched.scheduler(time.time, time.sleep)  # sched 스케줄러 객체 생성
+
 
 # 타이머 감소 함수
 def countdown_timer():
     global remaining_time, timer_running
     if remaining_time > 0:
-        print("남은 시간: ",remaining_time)
+        print("time left: ", remaining_time)
         remaining_time -= 1  # 남은 시간 1초 감소
-        scheduler.enter(1, 1, countdown_timer)  # 1초 후에 다시 실행 (delay, priority, 호출 함수)
+        threading.Timer(1, countdown_timer).start()  # 1초 후에 다시 실행
     else:
+        print("timer 종료!") # timer =0 이 됐을 떄 소리가 나게 한다. 
         timer_running = False  # 타이머 종료
 
 # 타이머 시작 함수
@@ -75,7 +75,8 @@ def start_timer(duration):
     remaining_time = duration  # 초기화
     if not timer_running:
         timer_running = True
-        scheduler.enter(1, 1, countdown_timer)  # 타이머 시작
+        countdown_timer()
+
 
 # FSM 상태 클래스 정의
 class State:
@@ -510,8 +511,8 @@ def get_height_and_weight():
     return float(height), float(weight)
 
 
-def run_scheduler():
-    scheduler.run()  # 스케줄러 실행
+
+
 
 
 
@@ -604,9 +605,6 @@ def main():
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):
                             start_timer(3)
-                            scheduler_thread = threading.Thread(target=run_scheduler)
-                            scheduler_thread.daemon = True  # 프로그램 종료 시 스레드도 종료되도록 설정
-                            scheduler_thread.start()
                             fsm.current_state = "start"
                         else:
                             start_time = None
