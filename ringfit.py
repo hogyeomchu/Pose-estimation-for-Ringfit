@@ -13,7 +13,7 @@ from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
 
-import timer3 as timer
+import timer
 
 
 sport_list = {
@@ -525,14 +525,14 @@ def main():
                         ) or (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):  
-                            if timer.timer_running == False:
+                            if timer.is_timer_running() == False:
                                 timer.start_timer(3)
                             
-                            print(timer.timer_over)
-                            if timer.timer_over:
+                            print(timer.is_timer_over())
+                            if timer.is_timer_over():
                                 state = "start"
                         else:
-                            if timer.timer_running == True:
+                            if timer.is_timer_running() == True:
                                 timer.stop_timer()
 
             if state == "start":            
