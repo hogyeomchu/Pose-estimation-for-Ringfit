@@ -9,6 +9,7 @@ boundary = 100  # 임계값
 # 전역 변수
 a = 90  # 센서 데이터 (실시간으로 변경된다고 가정)
 timer_running = False           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+timer_over = False
 timer_event = threading.Event()         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # GPIO 초기화
@@ -23,12 +24,8 @@ def stop_timer():           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     timer_running = False
     print("타이머 중단 및 초기화")
 
-# # 타이머 중단 함수 
-# def interrupt_and_reset_timer():
-#     global timer_running
-#     if timer_running:  # 타이머가 실행 중일 경우
-#         print("남은 시간이 1초일 때 타이머를 중단하고 초기화합니다.")
-#         stop_timer()
+
+
 
 # 타이머 시작 함수
 def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -37,6 +34,7 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         stop_timer()
 
     timer_running = True
+    timer_over = False 
     timer_event.clear()  # 이벤트 초기화
     print(f"타이머 시작! {duration}초")
 
@@ -50,9 +48,12 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             duration -= 1
             # if duration == 1:
             #     stop_timer()
+            if duration == 0:
+                timer_over = True 
+                print("타이머 종료!")
 
 
-        print("타이머 종료!")
+        
         timer_running = False
 
     threading.Thread(target=timer_task, daemon=True).start()
@@ -62,7 +63,7 @@ def update_gpio_state():        # parameter를 받아서?
     global a, timer_running
     if a < boundary:  # a가 임계값보다 작을 경우
         if not timer_running:  # 타이머가 실행 중이 아니면 시작
-            
+
             start_timer(3)
     else:
         if timer_running:  # a가 임계값보다 커지면 타이머 중단
