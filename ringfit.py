@@ -505,7 +505,7 @@ def main():
                     
             if state == "ready":
                 # 바운딩 박스 넣어보기 안될 수도 있음
-                bbox_x, bbox_y, bbox_width, bbox_height = 540, 700, 200, 75
+                bbox_x, bbox_y, bbox_width, bbox_height = 490, 700, 300, 100
                 cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 0, 255), 2)
                 
                 # 발 키포인트(15, 16) 확인 및 상태 변경
