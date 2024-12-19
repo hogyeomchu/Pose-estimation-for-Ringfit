@@ -105,37 +105,37 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     # Automatically detect device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Extract (x, y) coordinates and confidence values
-    keypoints_tensor = key_points.data.to(device)  # Ensure tensor is on the selected device
-    key_coords = keypoints_tensor[0, :, :2]  # Extract (x, y) coordinates
-    confidences = keypoints_tensor[0, :, 2]  # Extract confidence values
-    if not isinstance(confidences, torch.Tensor):
-        confidences = torch.tensor(confidences, device=device)
+    # Move key_points data to the device
+    key_points = key_points.data.to(device)
 
-    # Convert example to NumPy array and extract its confidence values
+    # Convert example to tensor and move to the device
     example_np = np.array(example)  # example의 shape은 (17, 3) 형태로 가정
-    example_coords = torch.tensor(example_np[:, :2], device=device)  # Move example_coords to the same device
-    example_confidences = torch.tensor(example_np[:, 2], device=device)  # Move example_confidences to the same device
+    example_tensor = torch.tensor(example_np, device=device)
 
     # Filter keypoints based on confidence
-    valid_indices = (confidences > confidence_threshold) & (example_confidences > confidence_threshold)
-    valid_indices = valid_indices.bool()  # Ensure valid_indices is torch.bool
+    valid_indices = (key_points[0, :, 2] > confidence_threshold) & (example_tensor[:, 2] > confidence_threshold)
 
-    valid_key_coords = key_coords[valid_indices]
-    valid_example_coords = example_coords[valid_indices, :]  # Ensure alignment
+    # Ensure valid_indices is boolean tensor
+    valid_indices = valid_indices.bool()
+
+    # Filter valid keypoints and example points
+    valid_key_points = key_points[0, valid_indices, :]
+    valid_example_points = example_tensor[valid_indices, :]
 
     # Ensure valid keypoints to compare
-    if len(valid_key_coords) == 0:
+    if valid_key_points.size(0) == 0:
         print("No keypoints meet the confidence threshold.")
         return 99999
 
     # Calculate MSE
-    x_diff = (valid_key_coords[:, 0] / weight - valid_example_coords[:, 0] / weight)
-    y_diff = (valid_key_coords[:, 1] / height - valid_example_coords[:, 1] / height)
+    weight = 0.01 * weight
+    height = 0.01 * height
+    x_diff = (valid_key_points[:, 0] / weight - valid_example_points[:, 0] / weight)
+    y_diff = (valid_key_points[:, 1] / height - valid_example_points[:, 1] / height)
 
     mse = torch.mean(x_diff ** 2 + y_diff ** 2).item()
     print("error: ", mse)
-    # score = calculate_score()
+
     return mse
 
 def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
@@ -147,6 +147,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     key_points = key_points.data.to(device)  # Keypoints를 텐서로 변환 후 디바이스로 이동
+    key_points = key_points.squeeze(0)  # 불필요한 차원 축소
 
     # 기본 점수
     basic_score = 50
@@ -161,20 +162,16 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     LEFT_SHOULDER = 5
     RIGHT_SHOULDER = 6
 
-    # 키포인트 좌표와 confidence 추출
-    key_coords = key_points[:, :2]  # x, y 좌표
-    confidences = key_points[:, 2]  # confidence 값
-
     # 1. Hip Score (엉덩이 vs 무릎의 y 좌표)
     hip_diff = 0
     hip_score = 0
-    if confidences[LEFT_HIP] > confidence_threshold and confidences[LEFT_KNEE] > confidence_threshold:
-        left_hip_y = key_coords[LEFT_HIP, 1]
-        left_knee_y = key_coords[LEFT_KNEE, 1]
+    if key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold:
+        left_hip_y = key_points[LEFT_HIP, 1]
+        left_knee_y = key_points[LEFT_KNEE, 1]
         hip_diff += (left_knee_y - left_hip_y)
-    if confidences[RIGHT_HIP] > confidence_threshold and confidences[RIGHT_KNEE] > confidence_threshold:
-        right_hip_y = key_coords[RIGHT_HIP, 1]
-        right_knee_y = key_coords[RIGHT_KNEE, 1]
+    if key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold:
+        right_hip_y = key_points[RIGHT_HIP, 1]
+        right_knee_y = key_points[RIGHT_KNEE, 1]
         hip_diff += (right_knee_y - right_hip_y)
 
     if hip_diff > 0:
@@ -185,15 +182,15 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     shoulder_center_x = None
     hip_knee_center_x = None
 
-    if confidences[LEFT_SHOULDER] > confidence_threshold and confidences[RIGHT_SHOULDER] > confidence_threshold:
-        left_shoulder_x = key_coords[LEFT_SHOULDER, 0]
-        right_shoulder_x = key_coords[RIGHT_SHOULDER, 0]
+    if key_points[LEFT_SHOULDER, 2] > confidence_threshold and key_points[RIGHT_SHOULDER, 2] > confidence_threshold:
+        left_shoulder_x = key_points[LEFT_SHOULDER, 0]
+        right_shoulder_x = key_points[RIGHT_SHOULDER, 0]
         shoulder_center_x = (left_shoulder_x + right_shoulder_x) / 2
 
-    if (confidences[LEFT_HIP] > confidence_threshold and confidences[LEFT_KNEE] > confidence_threshold and
-        confidences[RIGHT_HIP] > confidence_threshold and confidences[RIGHT_KNEE] > confidence_threshold):
-        left_hip_knee_x = (key_coords[LEFT_HIP, 0] + key_coords[LEFT_KNEE, 0]) / 2
-        right_hip_knee_x = (key_coords[RIGHT_HIP, 0] + key_coords[RIGHT_KNEE, 0]) / 2
+    if (key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold and
+        key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold):
+        left_hip_knee_x = (key_points[LEFT_HIP, 0] + key_points[LEFT_KNEE, 0]) / 2
+        right_hip_knee_x = (key_points[RIGHT_HIP, 0] + key_points[RIGHT_KNEE, 0]) / 2
         hip_knee_center_x = (left_hip_knee_x + right_hip_knee_x) / 2
 
     if shoulder_center_x is not None and hip_knee_center_x is not None:
@@ -203,13 +200,13 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 3. Knee Score (무릎과 발의 x 좌표 비교)
     knee_score = 0
     knee_diff = 0
-    if confidences[LEFT_KNEE] > confidence_threshold and confidences[LEFT_ANKLE] > confidence_threshold:
-        left_knee_x = key_coords[LEFT_KNEE, 0]
-        left_ankle_x = key_coords[LEFT_ANKLE, 0]
+    if key_points[LEFT_KNEE, 2] > confidence_threshold and key_points[LEFT_ANKLE, 2] > confidence_threshold:
+        left_knee_x = key_points[LEFT_KNEE, 0]
+        left_ankle_x = key_points[LEFT_ANKLE, 0]
         knee_diff += abs(left_knee_x - left_ankle_x)
-    if confidences[RIGHT_KNEE] > confidence_threshold and confidences[RIGHT_ANKLE] > confidence_threshold:
-        right_knee_x = key_coords[RIGHT_KNEE, 0]
-        right_ankle_x = key_coords[RIGHT_ANKLE, 0]
+    if key_points[RIGHT_KNEE, 2] > confidence_threshold and key_points[RIGHT_ANKLE, 2] > confidence_threshold:
+        right_knee_x = key_points[RIGHT_KNEE, 0]
+        right_ankle_x = key_points[RIGHT_ANKLE, 0]
         knee_diff += abs(right_knee_x - right_ankle_x)
 
     if knee_diff > 0:
@@ -464,13 +461,14 @@ def main():
         output = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, fps, size)
 
     # Set variables to record motion status
-    state = "ready"  # ready, start, redo, finish
+    state = "start"  # ready, start, redo, finish
     sports = list(sport_list.keys())
     sport_index = 0
 
     reaching = False
     reaching_last = False
     state_keep = False
+    start_time = None 
     counter = 0
     score = 0
     height, weight = 180, 70
@@ -521,7 +519,7 @@ def main():
 
                         if (
                             left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height
-                        ) and (
+                        ) or (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):
                             if start_time is None:  # 시작 시간 초기화
