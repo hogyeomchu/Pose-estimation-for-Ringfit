@@ -84,6 +84,7 @@ def sensor_update_simulation():
 
 
 # 메인 실행
+"""""
 try:
     setup_gpio()
     print("프로그램 실행 중... 센서 데이터 입력 대기")
@@ -95,3 +96,4 @@ except KeyboardInterrupt:
 finally:
     GPIO.cleanup()
     print("GPIO 정리 완료")
+    """""
