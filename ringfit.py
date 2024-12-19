@@ -525,6 +525,7 @@ def main():
                             if timer.time_running() == False:
                                 timer.start_timer(3)
                             
+                            print(timer.timer_over)
                             if timer.time_over() == True:
                                 state = "start"
                         else:
