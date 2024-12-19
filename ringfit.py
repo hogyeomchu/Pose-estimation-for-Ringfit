@@ -521,18 +521,16 @@ def main():
                         right_x, right_y, right_conf = right_ankle
 
                         if (
-                            left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height
-                        ) or (
-                            right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
-                        ):  
-                            if timer.is_timer_running() == False:
-                                timer.start_timer(3)
-                            
-                            print(timer.is_timer_over())
-                            if timer.is_timer_over():
+                            (left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height)
+                            or (right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height)
+                        ):
+                            # 타이머가 실행 중이 아니면 시작
+                            timer.start_timer(3)
+
+                            if timer.is_timer_over():  # 타이머가 종료되었으면 상태 업데이트
                                 state = "start"
                         else:
-                            if timer.is_timer_running() == True:
+                            if timer.is_timer_running():  # 타이머가 실행 중이면 중단
                                 timer.stop_timer()
 
             if state == "start":            
