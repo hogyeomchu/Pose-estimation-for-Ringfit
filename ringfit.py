@@ -521,11 +521,14 @@ def main():
                             left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height
                         ) or (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
-                        ):
-                            timer.start_timer(3)
-                            state = "start"
+                        ):  
+                            if timer.timer_running == False:
+                                timer.start_timer(3)
+                            if timer.timer_over == True:
+                                state = "start"
                         else:
-                            timer.stop_timer()
+                            if timer.timer_running == True:
+                                timer.stop_timer()
 
             if state == "start":            
                 # Get hyperparameters
