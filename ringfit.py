@@ -130,7 +130,7 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
     # Calculate MSE
     weight = 0.01 * weight
     height = 0.01 * height
-    x_diff = (valid_key_points[:, 0] / weight - valid_example_points[:, 0] / weight)
+    x_diff = (valid_key_points[:, 0] - valid_example_points[:, 0])
     y_diff = (valid_key_points[:, 1] / height - valid_example_points[:, 1] / height)
 
     mse = torch.mean(x_diff ** 2 + y_diff ** 2).item()
