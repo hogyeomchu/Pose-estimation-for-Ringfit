@@ -130,8 +130,6 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
         return 99999
 
     # Calculate MSE
-    weight = 0.01 * weight
-    height = 0.01 * height
     x_diff = (valid_key_coords[:, 0] / weight - valid_example_coords[:, 0] / weight)
     y_diff = (valid_key_coords[:, 1] / height - valid_example_coords[:, 1] / height)
 
