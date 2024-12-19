@@ -10,7 +10,7 @@ boundary = 100  # 임계값
 # 전역 변수
 a = 90  # 센서 데이터 (실시간으로 변경된다고 가정)
 timer_running = False
-# timer_event = threading.Event()
+timer_event = threading.Event()
 
 
 
@@ -40,7 +40,8 @@ def update_gpio_state():
         GPIO.output(interrupt_pin, GPIO.LOW)  # GPIO 핀을 강제로 LOW로 설정 (트리거)
     else:
         GPIO.output(interrupt_pin, GPIO.HIGH)  # GPIO 핀을 HIGH로 유지 (초기화)
-        timer_running = False 
+        timer_event.is_set()
+        timer_running  = False 
 
 # GPIO 정리
 def cleanup_gpio():
