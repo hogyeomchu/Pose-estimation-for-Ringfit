@@ -508,7 +508,7 @@ def main():
                     
             if state == "ready":
                 # 바운딩 박스 넣어보기 안될 수도 있음
-                bbox_x, bbox_y, bbox_width, bbox_height = 490, 700, 300, 100
+                bbox_x, bbox_y, bbox_width, bbox_height = 490, 650, 300, 100
                 cv2.rectangle(frame, (bbox_x, bbox_y), (bbox_x + bbox_width, bbox_y + bbox_height), (0, 0, 255), 2)
                 
                 # 발 키포인트(15, 16) 확인 및 상태 변경
@@ -525,14 +525,14 @@ def main():
                         ) or (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):  
-                            if timer.time_running() == False:
+                            if timer.timer_running == False:
                                 timer.start_timer(3)
                             
-                            print(timer.time_over())
-                            if timer.time_over():
+                            print(timer.timer_over)
+                            if timer.timer_over:
                                 state = "start"
                         else:
-                            if timer.time_running() == True:
+                            if timer.timer_running == True:
                                 timer.stop_timer()
 
             if state == "start":            
