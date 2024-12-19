@@ -62,7 +62,6 @@ def main():
     cap = cv2.VideoCapture(0)  # 0: 기본 웹캠
 
     while cap.isOpened():
-<<<<<<< HEAD
         # Read a frame from the video
         success, frame = cap.read()
     
@@ -195,30 +194,6 @@ def main():
                 break
         else:
             # Break the loop if the end of the video is reached
-=======
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        # 전처리
-        input_data = preprocess_image(frame)
-
-        # TensorRT 추론
-        output = infer(engine, input_data)
-
-        # 후처리
-        keypoints = postprocess_output(output)
-
-        # 시각화 (키포인트 그리기)
-        for keypoint in keypoints:
-            x, y, conf = keypoint
-            cv2.circle(frame, (int(x), int(y)), 5, (0, 255, 0), -1)
-
-        # 결과 표시
-        cv2.imshow("YOLOv8 Pose Detection", frame)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
->>>>>>> cc12bb68033b71852329f955638d6862b08b2737
             break
 
     cap.release()

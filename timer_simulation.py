@@ -77,10 +77,10 @@ def start_timer(duration):
         global timer_running
         time_remaining = duration
         while time_remaining > 0:
-            # if timer_event.is_set():
-            #     print("타이머 중단됨.")
-            #     timer_running = False
-            #     return
+            if timer_event.is_set():
+                print("타이머 중단됨.")
+                timer_running = False
+                return
             countdown_timer()
     threading.Thread(target=timer_task).start()
 
