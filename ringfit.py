@@ -528,8 +528,8 @@ def main():
                             if timer.time_running() == False:
                                 timeover = timer.start_timer(3)
                             
-                            print(timeover)
-                            if timeover == True:
+                            print(timer.time_over())
+                            if timer.time_over() == True:
                                 state = "start"
                         else:
                             if timer.time_running() == True:
