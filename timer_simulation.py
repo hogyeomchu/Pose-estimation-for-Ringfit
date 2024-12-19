@@ -14,7 +14,7 @@ timer_event = threading.Event()
 # GPIO 초기화
 def setup_gpio():
     GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
-    GPIO.setup(interrupt_pin, GPIO.OUT, initial=1)  # 핀 설정 (output: 초기값 1 설정)
+    GPIO.setup(interrupt_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 핀 설정 (입력 핀으로 설정)
     GPIO.add_event_detect(interrupt_pin, GPIO.FALLING, callback=interrupt_handler, bouncetime=300)  # 인터럽트 설정: interrupt_pin(output pin)이 기본적으로 1이다가 0으로 떨어지는 falling edge에 callback 함수 호출
 
 # 인터럽트 핸들러 함수
