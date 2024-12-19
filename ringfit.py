@@ -439,7 +439,7 @@ def main():
     # Obtain relevant parameters
     args = parse_args()
     # Load the YOLOv8 model
-    model = YOLO(args.model)
+    model = YOLO(args.model, verbose=False)
 
     # Open the video file or camera
     if args.input.isnumeric():
@@ -524,6 +524,7 @@ def main():
                         ):  
                             if timer.timer_running == False:
                                 timer.start_timer(3)
+                            
                             if timer.timer_over == True:
                                 state = "start"
                         else:
