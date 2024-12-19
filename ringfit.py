@@ -525,8 +525,10 @@ def main():
                             if timer.timer_running == False:
                                 timer.start_timer(3)
                             
+                            print(timer.timer_over)
                             if timer.timer_over == True:
                                 state = "start"
+                                print("ㅅㅂ 왜 안돼")
                         else:
                             if timer.timer_running == True:
                                 timer.stop_timer()
