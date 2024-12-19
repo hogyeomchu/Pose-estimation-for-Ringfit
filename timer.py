@@ -1,49 +1,80 @@
-import sched
-import time 
-import cv2 
 import Jetson.GPIO as GPIO
-from datetime import datetime
+import threading
+import time
 
-# GPIO 핀 번호
-INPUT_PIN = 12  # 이벤트를 감지할 핀 번호
+# GPIO 핀 설정
+interrupt_pin = 16  # GPIO 핀 번호 (BOARD 모드 기준)
+boundary = 100  # 임계값
 
-# GPIO 설정
-GPIO.setmode(GPIO.BOARD)  # BOARD 모드 사용
-GPIO.setup(INPUT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)  # 입력 모드 설정
+# 전역 변수
+a = 90  # 센서 데이터 (실시간으로 변경된다고 가정)
+timer_state = {
+    "running": False,
+    "over": False,
+}
+timer_event = threading.Event()
+lock = threading.Lock()  # 동기화를 위한 Lock 객체
 
-# 타이머 상태 변수
-start_time = None
-timer_duration = 5  # 타이머 지속 시간 (초)
+# GPIO 초기화
+def setup_gpio():
+    GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
+    GPIO.setup(interrupt_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 핀 설정 (입력 핀으로 설정)
 
-def interrupt_handler(channel):
-    """
-    Interrupt가 발생했을 때 실행되는 핸들러 함수.
-    """
-    global start_time
-    if start_time is None:
-        start_time = time.time()
+# 타이머 종료 함수
+def stop_timer():
+    with lock:
+        timer_event.set()  # 이벤트를 설정하여 타이머를 중단
+        timer_state["running"] = False
+        print("타이머 중단 및 초기화")
+
+# 타이머 시작 함수
+def start_timer(duration):
+    with lock:
+        if timer_state["running"]:  # 이미 타이머가 실행 중이면 중단
+            stop_timer()
+
+        timer_state["running"] = True
+        timer_state["over"] = False
+        timer_event.clear()  # 이벤트 초기화
         print("타이머 시작!")
+
+    def timer_task():
+        nonlocal duration
+        while duration > 0:
+            if timer_event.is_set():  # 이벤트가 설정되면 중단
+                return
+            print(f"남은 시간: {duration}초")
+            time.sleep(1)
+            duration -= 1
+
+        with lock:
+            timer_state["running"] = False
+            timer_state["over"] = True
+            print("타이머 종료!")
+
+    threading.Thread(target=timer_task, daemon=True).start()
+
+# 상태 확인 함수
+def is_timer_running():
+    with lock:
+        return timer_state["running"]
+
+def is_timer_over():
+    with lock:
+        return timer_state["over"]
+
+# 센서 데이터 업데이트 및 타이머 제어 함수
+def update_gpio_state(new_a):
+    global a
+    a = new_a
+    if a < boundary:  # a가 임계값보다 작을 경우
+        if not is_timer_running():  # 타이머가 실행 중이 아니면 시작
+            start_timer(3)
     else:
-        elapsed_time = time.time() - start_time
-        print(f"타이머 종료! 경과 시간: {elapsed_time:.2f}초")
-        start_time = None
+        if is_timer_running():  # a가 임계값보다 커지면 타이머 중단
+            stop_timer()
 
-# GPIO Interrupt 설정
-GPIO.add_event_detect(INPUT_PIN, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
-
-print("Interrupt 기반 타이머 준비 완료. 입력 신호를 기다리는 중...")
-
-try:
-    while True:
-        if start_time:
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= timer_duration:
-                print(f"타이머 완료: {timer_duration}초 경과")
-                start_time = None
-        time.sleep(0.1)  # CPU 사용량 감소를 위해 대기
-
-except KeyboardInterrupt:
-    print("프로그램 종료.")
-
-finally:
-    GPIO.cleanup()  # GPIO 설정 정리
+# GPIO 정리 함수
+def cleanup_gpio():
+    GPIO.cleanup()
+    print("GPIO 정리 완료")

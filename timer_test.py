@@ -1,5 +1,5 @@
 # test_timer.py
-import timer3 as timer  # 위의 파일이 'timer.py'로 저장되어 있다고 가정
+import timer  # 위의 파일이 'timer.py'로 저장되어 있다고 가정
 import time
 
 def main():
