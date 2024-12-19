@@ -14,6 +14,7 @@ from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
 
 import timer3 as timer
+from timer3 import timer_running, timer_over
 
 
 
@@ -526,11 +527,11 @@ def main():
                         ) or (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):  
-                            if timer.time_running() == False:
+                            if timer_running == False:
                                 timer.start_timer(3)
                             
-                            print(timer.timer_over)
-                            if timer.time_over() == True:
+                            #print(timer.timer_over)
+                            if timer_over == True:
                                 state = "start"
                         else:
                             if timer.time_running() == True:
