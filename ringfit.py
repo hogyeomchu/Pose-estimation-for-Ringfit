@@ -528,10 +528,10 @@ def main():
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):  
                             if timer_running == False:
-                                timer.start_timer(3)
+                                timeover = timer.start_timer(3)
                             
-                            print(timer_over)
-                            if timer_over == True:
+                            print(timeover)
+                            if timeover == True:
                                 state = "start"
                         else:
                             if timer.time_running() == True:

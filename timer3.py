@@ -56,8 +56,8 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         
         timer_running = False
-
     threading.Thread(target=timer_task, daemon=True).start()
+    return timer_over
 
 
 def time_over():
