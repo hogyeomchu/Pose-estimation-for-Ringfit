@@ -530,7 +530,7 @@ def main():
                             if timer_running == False:
                                 timer.start_timer(3)
                             
-                            #print(timer.timer_over)
+                            print(timer_over)
                             if timer_over == True:
                                 state = "start"
                         else:
