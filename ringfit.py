@@ -525,10 +525,11 @@ def main():
                             or (right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height)
                         ):
                             # 타이머가 실행 중이 아니면 시작
+                            print("실행중", timer.is_timer_running())
                             if not timer.is_timer_running():
                                 timer.start_timer(3)
 
-                            print(timer.is_timer_over)
+                            print("끝났니", timer.is_timer_over())
                             if timer.is_timer_over():  # 타이머가 종료되었으면 상태 업데이트
                                 state = "start"
                         else:
