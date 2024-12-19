@@ -532,6 +532,7 @@ def main():
                             print("끝났니", timer.is_timer_over())
                             if timer.is_timer_over():  # 타이머가 종료되었으면 상태 업데이트
                                 state = "start"
+                            time.sleep(1)
                         else:
                             if timer.is_timer_running():  # 타이머가 실행 중이면 중단
                                 timer.stop_timer()
