@@ -582,10 +582,12 @@ def main():
 
                             if is_timer_over() and time_ck == 1:
                                 state = "start"
+                                time_ck = 0
 
                         else:
-                            stop_timer()
-                            time_ck == 0
+                            if is_timer_running():
+                                stop_timer()
+                                time_ck == 0
 
             if state == "start":            
                 # Get hyperparameters
