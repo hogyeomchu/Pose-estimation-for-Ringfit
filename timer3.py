@@ -10,7 +10,7 @@ boundary = 100  # 임계값
 a = 90  # 센서 데이터 (실시간으로 변경된다고 가정)
 timer_running = False
 timer_event = threading.Event()
-
+#dddd
 # GPIO 초기화
 def setup_gpio():
     GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
