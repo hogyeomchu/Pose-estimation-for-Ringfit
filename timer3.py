@@ -30,8 +30,8 @@ def stop_timer():           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # 타이머 시작 함수
 def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     global timer_running
-    if timer_running:  # 이미 타이머가 실행 중이면 중단
-        stop_timer()
+    # if timer_running:  # 이미 타이머가 실행 중이면 중단
+    #     stop_timer()
 
     timer_running = True
     timer_over = False 
