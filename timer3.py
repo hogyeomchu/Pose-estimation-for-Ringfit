@@ -3,21 +3,21 @@ import threading
 import time
 
 # GPIO 핀 설정
-interrupt_pin = 16  # GPIO 핀 번호 (BOARD 모드 기준)
+interrupt_pin = 16  # GPIO 핀 번호 (BOARD 모드 기준)!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 boundary = 100  # 임계값
 
 # 전역 변수
 a = 90  # 센서 데이터 (실시간으로 변경된다고 가정)
-timer_running = False
-timer_event = threading.Event()
-#dddd
+timer_running = False           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+timer_event = threading.Event()         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 # GPIO 초기화
-def setup_gpio():
+def setup_gpio():               #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
     GPIO.setup(interrupt_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 핀 설정 (입력 핀으로 설정)
 
 # 타이머 종료 함수
-def stop_timer():
+def stop_timer():           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
     global timer_running
     timer_event.set()  # 이벤트를 설정하여 타이머를 중단
     timer_running = False
@@ -31,7 +31,7 @@ def stop_timer():
 #         stop_timer()
 
 # 타이머 시작 함수
-def start_timer(duration):
+def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     global timer_running
     if timer_running:  # 이미 타이머가 실행 중이면 중단
         stop_timer()
@@ -48,8 +48,8 @@ def start_timer(duration):
             print(f"남은 시간: {duration}초")
             time.sleep(1)
             duration -= 1
-            if duration == 1:
-                stop_timer()
+            # if duration == 1:
+            #     stop_timer()
 
 
         print("타이머 종료!")
@@ -58,10 +58,11 @@ def start_timer(duration):
     threading.Thread(target=timer_task, daemon=True).start()
 
 # GPIO 핀 상태 업데이트
-def update_gpio_state():
+def update_gpio_state():        # parameter를 받아서?
     global a, timer_running
     if a < boundary:  # a가 임계값보다 작을 경우
         if not timer_running:  # 타이머가 실행 중이 아니면 시작
+            
             start_timer(3)
     else:
         if timer_running:  # a가 임계값보다 커지면 타이머 중단
