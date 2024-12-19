@@ -15,7 +15,7 @@ from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
 
-import timer
+#import timer
 
 
 sport_list = {
@@ -221,32 +221,37 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
 
     return int(score)
 
-#################
-timer_running = False           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-timer_over = False
-timer_event = threading.Event()   
+#######################################
+interrupt_pin = 16
+timer_state = {
+    "running": False,
+    "over": False,
+}
+timer_event = threading.Event()
+lock = threading.Lock()  # 동기화를 위한 Lock 객체
+
+# GPIO 초기화
+def setup_gpio():
+    GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
+    GPIO.setup(interrupt_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 핀 설정 (입력 핀으로 설정)
 
 # 타이머 종료 함수
-def stop_timer():           #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-    global timer_running
-    timer_event.set()  # 이벤트를 설정하여 타이머를 중단
-    timer_running = False
-    print("타이머 중단 및 초기화")
-
-
-
+def stop_timer():
+    with lock:
+        timer_event.set()  # 이벤트를 설정하여 타이머를 중단
+        timer_state["running"] = False
+        print("타이머 중단 및 초기화")
 
 # 타이머 시작 함수
-def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    global timer_running
-    global timer_over
-    if timer_running:  # 이미 타이머가 실행 중이면 중단
-        return
+def start_timer(duration):
+    with lock:
+        if timer_state["running"]:  # 이미 타이머가 실행 중이면 중단
+            stop_timer()
 
-    timer_running = True
-    timer_over = False 
-    timer_event.clear()  # 이벤트 초기화
-    print(f"타이머 시작!")
+        timer_state["running"] = True
+        timer_state["over"] = False
+        timer_event.clear()  # 이벤트 초기화
+        print("타이머 시작!")
 
     def timer_task():
         nonlocal duration
@@ -256,20 +261,29 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             print(f"남은 시간: {duration}초")
             time.sleep(1)
             duration -= 1
-        
-        timer_running = False
-        timer_over = True
-        print(timer_over)
-    threading.Thread(target=timer_task, daemon=True).start()
 
+        with lock:
+            timer_state["running"] = False
+            timer_state["over"] = True
+            print("타이머 종료!")
+
+    threading.Thread(target=timer_task, daemon=True).start()
 
 # 상태 확인 함수
 def is_timer_running():
-    return timer_running
+    with lock:
+        return timer_state["running"]
 
 def is_timer_over():
-    return timer_over
-##########################################################
+    with lock:
+        return timer_state["over"]
+
+
+# GPIO 정리 함수
+def cleanup_gpio():
+    GPIO.cleanup()
+    print("GPIO 정리 완료")
+###########################################
 
 
 def plot(pose_result, plot_size_redio, show_points=None, show_skeleton=None):
@@ -577,10 +591,10 @@ def main():
                             or (right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height)
                         ):
                             if time_ck == 0:
-                                timer.start_timer(3)
+                                start_timer(3)
                                 time_ck == 1
-                            print(timer_over)
-                            if timer_over and time_ck == 1:
+                            print(is_timer_over)
+                            if is_timer_over and time_ck == 1:
                                 state = "start"
                                 time_ck = 0
                                 print("어디서 멈추는겨")
