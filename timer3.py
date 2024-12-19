@@ -50,13 +50,13 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             # if duration == 1:
             #     stop_timer()
             if duration == 0:
-                timer_over = True 
                 print("타이머 종료!", timer_over)
                 
 
 
         
         timer_running = False
+        timer_over = True
     threading.Thread(target=timer_task, daemon=True).start()
 
 
