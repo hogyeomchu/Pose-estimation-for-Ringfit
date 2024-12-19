@@ -12,6 +12,7 @@ from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
 
+import timer3 as timer
 
 
 sport_list = {
@@ -521,13 +522,10 @@ def main():
                         ) or (
                             right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height
                         ):
-                            if start_time is None:  # 시작 시간 초기화
-                                start_time = time.time()
-                            elif time.time() - start_time >= 1:  # 1초 이상 경과 확인
-                                print("Start!")
-                                state = "start"
+                            timer.start_timer(3)
+                            state = "start"
                         else:
-                            start_time = None
+                            timer.stop_timer()
 
             if state == "start":            
                 # Get hyperparameters
