@@ -525,6 +525,7 @@ def main():
     counter = 0
     max_score = 0
     score = 0
+    time_ck = 0
     height, weight = 180, 70
     # height, weight = get_height_and_weight()
     timer.setup_gpio()
@@ -575,14 +576,16 @@ def main():
                             (left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height)
                             or (right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height)
                         ):
-                            if not is_timer_running():
+                            if time_ck == 0:
                                 timer.start_timer(3)
+                                time_ck == 1
 
-                            if is_timer_over:
+                            if is_timer_over() and time_ck == 1:
                                 state = "start"
 
                         else:
                             stop_timer()
+                            time_ck == 0
 
             if state == "start":            
                 # Get hyperparameters
