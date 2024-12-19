@@ -23,6 +23,13 @@ def stop_timer():
     timer_running = False
     print("타이머 중단 및 초기화")
 
+# 타이머 중단 함수 
+def interrupt_and_reset_timer():
+    global timer_running
+    if timer_running:  # 타이머가 실행 중일 경우
+        print("남은 시간이 1초일 때 타이머를 중단하고 초기화합니다.")
+        stop_timer()
+
 # 타이머 시작 함수
 def start_timer(duration):
     global timer_running
@@ -41,6 +48,9 @@ def start_timer(duration):
             print(f"남은 시간: {duration}초")
             time.sleep(1)
             duration -= 1
+            if duration == 1:
+                interrupt_and_reset_timer()
+
 
         print("타이머 종료!")
         timer_running = False
@@ -68,7 +78,7 @@ def sensor_update_simulation():
             print("유효한 숫자를 입력하세요.")
         time.sleep(0.1)
 
-
+    
 
 
 # 메인 실행
