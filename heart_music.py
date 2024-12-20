@@ -31,16 +31,7 @@ def music(beat):
     player.set_rate(1)
     player.play()
     
-    if beat > 100 :
-        beep.set_rate(1.2)
-        beep.play()
-        time.sleep(5)
-        while True:
-            if beat < 80:
-                break
-    elif beat > 90:
-        player.set_rate(1.25)
-    
+    time.sleep(10000)
    
 
 

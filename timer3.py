@@ -13,7 +13,7 @@ timer_over = False
 timer_event = threading.Event()         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # GPIO 초기화
-def setup_gpio():               #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+def setup_gpio():               
     GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
     GPIO.setup(interrupt_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 핀 설정 (입력 핀으로 설정)
 
