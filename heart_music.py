@@ -23,11 +23,8 @@ GPIO.add_event_detect(HEARTBEAT_PIN, GPIO.RISING, callback= heartbeat_callback)
 pulse_intervals = []
 last_pulse_time = 0
 
-def music(beat):
+def music():
     player = vlc.MediaPlayer("./music.mp3")  # nvidia@nvidia-desktop:~/Pose-estimation-for-Ringfit
-    beep = vlc.MediaPlayer("./beep_sound.mp3")
-    player.audio_output_set("alsa")  # ALSA를 명시적으로 설정
-    beep.audio_output_set("alsa")
     player.set_rate(1)
     player.play()
     
