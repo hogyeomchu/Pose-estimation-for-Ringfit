@@ -9,13 +9,11 @@ import pygame
 import sys
 import time
 import logging
-import threading
-import Jetson.GPIO as GPIO
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
 
-#import timer
+#import timer3 as timer
 
 
 sport_list = {
@@ -46,12 +44,11 @@ sport_list = {
         'right_points_idx': [12, 14, 16],
         'maintaining': 80,
         'relaxing': 140,
-        'boundary': 10000,
+        'boundary': 2000,
         'concerned_key_points_idx': [11, 12, 13, 14, 15],
         'concerned_skeletons_idx': [[16, 14], [14, 12], [17, 15], [15, 13]],
-        'example1_idx': [[790.8934936523438, 370.8782958984375, 0.9554082751274109], [0.0, 0.0, 0.3667287528514862], [780.343017578125, 355.3907470703125, 0.9803277850151062], [0.0, 0.0, 0.03333147615194321], [736.9127197265625, 359.50872802734375, 0.9780341982841492], [679.8504638671875, 417.9067687988281, 0.9015007019042969], [692.560791015625, 423.825927734375, 0.9957813024520874], [742.5250244140625, 501.7216796875, 0.5579652190208435], [787.887939453125, 532.1363525390625, 0.9937047362327576], [799.5919189453125, 455.236083984375, 0.6515821218490601], [813.8155517578125, 444.1479797363281, 0.9879148006439209], [523.1993408203125, 546.7066040039062, 0.9530515074729919], [520.2064819335938, 554.30029296875, 0.9888673424720764], [710.7117919921875, 564.3704833984375, 0.9626505374908447], [698.611083984375, 583.9825439453125, 0.9933033585548401], [644.0439453125, 708.7687377929688, 0.9193461537361145], [603.1053466796875, 730.88427734375, 0.9693002104759216]],
-        'example2_idx': [[726.5889892578125, 90.649658203125, 0.9245054125785828], [0.0, 0.0, 0.33452704548835754], [719.0135498046875, 75.04046630859375, 0.9768596291542053], [0.0, 0.0, 0.04215420037508011], [673.3643798828125, 71.355224609375, 0.9657612442970276], [634.0013427734375, 158.72515869140625, 0.5154595971107483], [655.8916625976562, 161.07513427734375, 0.9977946281433105], [0.0, 0.0, 0.05190538614988327], [652.5096435546875, 298.1383056640625, 0.9959108829498291], [0.0, 0.0, 0.0905299261212349], [697.6686401367188, 401.5651550292969, 0.986933708190918], [645.534423828125, 396.4898681640625, 0.9457389712333679], [661.8905029296875, 401.6611328125, 0.9973733425140381], [641.5545654296875, 554.7891845703125, 0.9502384662628174], [669.8883056640625, 566.0969848632812, 0.9975005984306335], [624.8091430664062, 712.2351684570312, 0.9154536128044128], [627.0443115234375, 724.532470703125, 0.9882832765579224]]
-
+        'example1_idx': [[645.7726440429688, 367.6688537597656, 0.9409571886062622], [0.0, 0.0, 0.39238065481185913], [634.60400390625, 361.80023193359375, 0.9494017362594604], [0.0, 0.0, 0.07703593373298645], [599.8357543945312, 373.9419250488281, 0.9472667574882507], [586.4363403320312, 416.3113708496094, 0.9701748490333557], [592.14404296875, 428.5505065917969, 0.9976065158843994], [660.3336181640625, 439.47906494140625, 0.8722352385520935], [692.2420654296875, 463.27508544921875, 0.9972243309020996], [716.935302734375, 422.73846435546875, 0.8901500105857849], [733.8765869140625, 427.53326416015625, 0.9951942563056946], [543.4896240234375, 569.6231689453125, 0.9920791983604431], [536.87158203125, 580.9937744140625, 0.9977254271507263], [672.9691772460938, 555.5737915039062, 0.978821873664856], [655.5526123046875, 583.02978515625, 0.9947478175163269], [607.9963989257812, 683.0425415039062, 0.9178726673126221], [580.1995849609375, 700.5059814453125, 0.963210940361023]],
+        'example2_idx': [[633.114990234375, 198.45712280273438, 0.915290355682373], [0.0, 0.0, 0.2596534490585327], [624.12255859375, 187.20513916015625, 0.9402338862419128], [0.0, 0.0, 0.03502524271607399], [583.744384765625, 192.6472625732422, 0.9316720366477966], [602.0589599609375, 262.1407470703125, 0.9073334336280823], [582.5658569335938, 257.21075439453125, 0.9990506768226624], [686.1266479492188, 298.18829345703125, 0.6794599294662476], [693.489501953125, 292.59832763671875, 0.9994397759437561], [730.1015625, 253.54547119140625, 0.754667341709137], [739.7537231445312, 245.86785888671875, 0.9984661340713501], [642.760498046875, 437.3790588378906, 0.9964584708213806], [622.2376098632812, 438.8179016113281, 0.9996770620346069], [661.00927734375, 576.5615234375, 0.9905223250389099], [624.71435546875, 585.267578125, 0.9991194605827332], [637.4113159179688, 708.1556396484375, 0.9499179124832153], [605.5403442382812, 712.010009765625, 0.9895927906036377]]
     }
 }
 
@@ -135,7 +132,7 @@ def calculate_mse(key_points, example, height, weight, confidence_threshold=0.5)
 
     # Calculate MSE using specific formula
     x_diff = ((valid_key_coords[:, 0] - key_points[0, 16, 0]) - (valid_example_coords[:, 0] - example_tensor[16, 0]))
-    y_diff = ((valid_key_coords[:, 1] - key_points[0, 16, 1]) / (height * 0.01) - (valid_example_coords[:, 1] - example_tensor[16, 1]) / 1.84)
+    y_diff = ((valid_key_coords[:, 1] - key_points[0, 16, 1]) / (height * 0.01) - (valid_example_coords[:, 1] - example_tensor[16, 1]) / 1.8)
 
     mse = torch.mean(x_diff ** 2 + y_diff ** 2).item()
 
@@ -154,7 +151,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     key_points = key_points.squeeze(0)  # 불필요한 차원 축소
 
     # 기본 점수
-    basic_score = 50
+    basic_score = int(50 - 25 * (boundary - mse) / boundary)
 
     # 키포인트 인덱스
     LEFT_HIP = 11
@@ -169,120 +166,115 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 1. Hip Score (엉덩이 vs 무릎의 y 좌표)
     hip_diff = 0
     hip_score = 0
-    if key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold:
+    if key_points.shape[0] <= max(LEFT_HIP, LEFT_KNEE):
+        hip_score += 0
+
+    elif key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold:
         left_hip_y = key_points[LEFT_HIP, 1]
         left_knee_y = key_points[LEFT_KNEE, 1]
-        hip_diff += (left_knee_y - left_hip_y)
-    if key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold:
+        diff = left_knee_y - left_hip_y  # 무릎과 엉덩이의 y 좌표 차이
+        if diff >= 0:  # 엉덩이가 무릎과 같거나 위에 있음
+            hip_score += 10
+        elif -20 <= diff < 0:  # 엉덩이가 무릎보다 약간 낮음
+            hip_score += max(0, 10 + (-diff / 20) * 10)  # 최소 점수 보장
+        else:  # 엉덩이가 무릎보다 많이 낮음
+            hip_score += 20
+    
+    if key_points.shape[0] <= max(RIGHT_HIP, RIGHT_KNEE):
+        hip_score += 0
+    
+    elif key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold:
         right_hip_y = key_points[RIGHT_HIP, 1]
         right_knee_y = key_points[RIGHT_KNEE, 1]
-        hip_diff += (right_knee_y - right_hip_y)
+        diff = right_knee_y - right_hip_y  # 무릎과 엉덩이의 y 좌표 차이
+        if diff >= 0:  # 엉덩이가 무릎과 같거나 위에 있음
+            hip_score += 10
+        elif -20 <= diff < 0:  # 엉덩이가 무릎보다 약간 낮음
+            hip_score += max(0, 10 + (-diff / 20) * 10)  # 최소 점수 보장
+        else:  # 엉덩이가 무릎보다 많이 낮음
+            hip_score += 20
 
-    if hip_diff > 0:
-        hip_score = max(0, min(20, (hip_diff / 50) * 20))  # 정규화하여 최대 20점
+    # hip_score 값은 0에서 40 사이로 계산됩니다 (각 엉덩이와 무릎 비교에서 최대 20점씩).
+    hip_score = max(0, min(40, hip_score))  # 점수 범위 보장
 
     # 2. Upper Score (어깨와 엉덩이/무릎 중앙 비교)
     upper_score = 0
     shoulder_center_x = None
     hip_knee_center_x = None
 
-    if key_points[LEFT_SHOULDER, 2] > confidence_threshold and key_points[RIGHT_SHOULDER, 2] > confidence_threshold:
+
+    
+    # 어깨 중앙 x 좌표 계산
+    if key_points.shape[0] <= max(LEFT_SHOULDER, RIGHT_SHOULDER):
+        shoulder_center_x = None
+
+    elif key_points[LEFT_SHOULDER, 2] > confidence_threshold and key_points[RIGHT_SHOULDER, 2] > confidence_threshold:
         left_shoulder_x = key_points[LEFT_SHOULDER, 0]
         right_shoulder_x = key_points[RIGHT_SHOULDER, 0]
         shoulder_center_x = (left_shoulder_x + right_shoulder_x) / 2
 
-    if (key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold and
+    # 엉덩이와 무릎 중앙 x 좌표 계산
+    if key_points.shape[0] <= max(LEFT_HIP, RIGHT_HIP):
+        hip_knee_center_x = None
+
+    elif (key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold and
         key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold):
         left_hip_knee_x = (key_points[LEFT_HIP, 0] + key_points[LEFT_KNEE, 0]) / 2
         right_hip_knee_x = (key_points[RIGHT_HIP, 0] + key_points[RIGHT_KNEE, 0]) / 2
         hip_knee_center_x = (left_hip_knee_x + right_hip_knee_x) / 2
 
+    # Upper Score 계산
     if shoulder_center_x is not None and hip_knee_center_x is not None:
         upper_diff = abs(shoulder_center_x - hip_knee_center_x)
-        upper_score = max(0, min(15, (1 - (upper_diff / 100)) * 15))  # 정규화하여 최대 15점
+        if upper_diff <= 10:  # 차이가 10 이하
+            upper_score = 15
+        elif 10 < upper_diff <= 30:  # 차이가 10 ~ 30
+            upper_score = 10
+        elif 30 < upper_diff <= 50:  # 차이가 30 ~ 50
+            upper_score = 5
+        else:  # 차이가 50 초과
+            upper_score = 0
 
     # 3. Knee Score (무릎과 발의 x 좌표 비교)
     knee_score = 0
     knee_diff = 0
-    if key_points[LEFT_KNEE, 2] > confidence_threshold and key_points[LEFT_ANKLE, 2] > confidence_threshold:
+
+    # 왼쪽 무릎과 발의 x 좌표 차이
+    if key_points.shape[0] <= max(LEFT_ANKLE, LEFT_KNEE):
+        knee_diff += 0
+
+    elif key_points[LEFT_KNEE, 2] > confidence_threshold and key_points[LEFT_ANKLE, 2] > confidence_threshold:
         left_knee_x = key_points[LEFT_KNEE, 0]
         left_ankle_x = key_points[LEFT_ANKLE, 0]
         knee_diff += abs(left_knee_x - left_ankle_x)
-    if key_points[RIGHT_KNEE, 2] > confidence_threshold and key_points[RIGHT_ANKLE, 2] > confidence_threshold:
+
+    # 오른쪽 무릎과 발의 x 좌표 차이
+    if key_points.shape[0] <= max(RIGHT_ANKLE, RIGHT_KNEE):
+        knee_diff += 0
+
+    elif key_points[RIGHT_KNEE, 2] > confidence_threshold and key_points[RIGHT_ANKLE, 2] > confidence_threshold:
         right_knee_x = key_points[RIGHT_KNEE, 0]
         right_ankle_x = key_points[RIGHT_ANKLE, 0]
         knee_diff += abs(right_knee_x - right_ankle_x)
 
-    if knee_diff > 0:
-        knee_score = max(0, min(15, (1 - (knee_diff / 50)) * 15))  # 정규화하여 최대 15점
+    knee_diff = knee_diff / 2
+
+    # Knee Score 계산
+    if knee_diff <= 70:  # 차이가 20 이하
+        knee_score = 15
+    elif 20 < knee_diff <= 90:  # 차이가 20 ~ 40
+        knee_score = 10
+    elif 40 < knee_diff <= 110:  # 차이가 40 ~ 60
+        knee_score = 5
+    else:  # 차이가 60 초과
+        knee_score = 0
 
     # 최종 점수 계산
     score = basic_score + hip_score + upper_score + knee_score
-
+    print(basic_score, hip_score, upper_score, knee_score)
     return int(score)
 
 #######################################
-interrupt_pin = 16
-timer_state = {
-    "running": False,
-    "over": False,
-}
-timer_event = threading.Event()
-lock = threading.Lock()  # 동기화를 위한 Lock 객체
-
-# GPIO 초기화
-def setup_gpio():
-    GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
-    GPIO.setup(interrupt_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 핀 설정 (입력 핀으로 설정)
-
-# 타이머 종료 함수
-def stop_timer():
-    with lock:
-        timer_event.set()  # 이벤트를 설정하여 타이머를 중단
-        timer_state["running"] = False
-        print("타이머 중단 및 초기화")
-
-# 타이머 시작 함수
-def start_timer(duration):
-    with lock:
-        if timer_state["running"]:  # 이미 타이머가 실행 중이면 중단
-            stop_timer()
-
-        timer_state["running"] = True
-        timer_state["over"] = False
-        timer_event.clear()  # 이벤트 초기화
-        print("타이머 시작!")
-
-    def timer_task():
-        nonlocal duration
-        while duration > 0:
-            if timer_event.is_set():  # 이벤트가 설정되면 중단
-                return
-            print(f"남은 시간: {duration}초")
-            time.sleep(1)
-            duration -= 1
-
-        with lock:
-            timer_state["running"] = False
-            timer_state["over"] = True
-            print("타이머 종료!")
-
-    threading.Thread(target=timer_task, daemon=True).start()
-
-# 상태 확인 함수
-def is_timer_running():
-    with lock:
-        return timer_state["running"]
-
-def is_timer_over():
-    with lock:
-        return timer_state["over"]
-
-
-# GPIO 정리 함수
-def cleanup_gpio():
-    GPIO.cleanup()
-    print("GPIO 정리 완료")
 ###########################################
 
 
@@ -515,6 +507,8 @@ def main():
     else:
         cap = cv2.VideoCapture(args.input)
 
+    desired_fps = 1
+    cap.set(cv2.CAP_PROP_FPS, desired_fps)
     # For save result video
     if args.save_dir is not None:
         save_dir = os.path.join(
@@ -542,7 +536,7 @@ def main():
     time_ck = 0
     height, weight = 180, 70
     # height, weight = get_height_and_weight()
-    setup_gpio()
+    # timer.setup_gpio()
     # Loop through the video frames
     while cap.isOpened():
         # Read a frame from the video
@@ -590,18 +584,8 @@ def main():
                             (left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height)
                             or (right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height)
                         ):
-                            if time_ck == 0:
-                                start_timer(3)
-                                time_ck == 1
-                            
-                            if is_timer_over() and time_ck == 1:
-                                state = "start"
-                                time_ck = 0
+                            state = "start"
 
-                        else:
-                            if is_timer_running():
-                                stop_timer()
-                                time_ck == 0
 
             if state == "start":            
                 # Get hyperparameters
@@ -612,15 +596,12 @@ def main():
                 mse = calculate_mse(results[0].keypoints, example_idx, height, weight)
 
                 # Determine whether to complete once
-                if mse < boundary:
-                    # 점수 계산
-                    temp_score = calculate_score(results[0].keypoints, mse, boundary)
-                    max_score = max(max_score, temp_score)
-                    
+                if mse < boundary:                    
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 3초 이상 경과 확인
                         state = "redo"
+                        score = calculate_score(results[0].keypoints, mse, boundary)
                 else:
                     start_time = None
 
@@ -633,18 +614,11 @@ def main():
                 mse = calculate_mse(results[0].keypoints, example_idx, height, weight)
 
                 # Determine whether to complete once
-                if mse < boundary:
-                    # 점수 계산
-                    if args.sport != "squart":
-                        temp_score = calculate_score(results[0].keypoints, mse, boundary)
-                        max_score = max(max_score, temp_score)
-
+                if mse < boundary: 
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 1초 이상 경과 확인
                         counter += 1
-                        score = max_score
-                        max_score = 0
                         if counter < 10:
                             state = "start"
                         else:
@@ -689,7 +663,7 @@ def main():
 
     # Release the video capture object and close the display window
     cap.release()
-    GPIO.cleanup()
+    # timer.GPIO.cleanup()
     if args.save_dir is not None:
         output.release()
     cv2.destroyAllWindows()
