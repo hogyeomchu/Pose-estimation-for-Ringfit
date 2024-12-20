@@ -44,7 +44,7 @@ sport_list = {
         'right_points_idx': [12, 14, 16],
         'maintaining': 80,
         'relaxing': 140,
-        'boundary': 10000,
+        'boundary': 2000,
         'concerned_key_points_idx': [11, 12, 13, 14, 15],
         'concerned_skeletons_idx': [[16, 14], [14, 12], [17, 15], [15, 13]],
         'example1_idx': [[645.7726440429688, 367.6688537597656, 0.9409571886062622], [0.0, 0.0, 0.39238065481185913], [634.60400390625, 361.80023193359375, 0.9494017362594604], [0.0, 0.0, 0.07703593373298645], [599.8357543945312, 373.9419250488281, 0.9472667574882507], [586.4363403320312, 416.3113708496094, 0.9701748490333557], [592.14404296875, 428.5505065917969, 0.9976065158843994], [660.3336181640625, 439.47906494140625, 0.8722352385520935], [692.2420654296875, 463.27508544921875, 0.9972243309020996], [716.935302734375, 422.73846435546875, 0.8901500105857849], [733.8765869140625, 427.53326416015625, 0.9951942563056946], [543.4896240234375, 569.6231689453125, 0.9920791983604431], [536.87158203125, 580.9937744140625, 0.9977254271507263], [672.9691772460938, 555.5737915039062, 0.978821873664856], [655.5526123046875, 583.02978515625, 0.9947478175163269], [607.9963989257812, 683.0425415039062, 0.9178726673126221], [580.1995849609375, 700.5059814453125, 0.963210940361023]],
@@ -151,7 +151,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     key_points = key_points.squeeze(0)  # 불필요한 차원 축소
 
     # 기본 점수
-    basic_score = 50 - 25 * max(0, mse - boundary / 2) / (boundary / 2)
+    basic_score = int(50 - 25 * (boundary - mse) / boundary)
 
     # 키포인트 인덱스
     LEFT_HIP = 11
@@ -166,7 +166,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 1. Hip Score (엉덩이 vs 무릎의 y 좌표)
     hip_diff = 0
     hip_score = 0
-    if key_points.shape[0] <= max(LEFT_HIP, RIGHT_HIP, LEFT_KNEE, RIGHT_KNEE):
+    if key_points.shape[0] <= max(LEFT_HIP, LEFT_KNEE):
         hip_score += 0
 
     elif key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold:
@@ -180,7 +180,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
         else:  # 엉덩이가 무릎보다 많이 낮음
             hip_score += 20
     
-    if key_points.shape[0] <= max(LEFT_HIP, RIGHT_HIP, LEFT_KNEE, RIGHT_KNEE):
+    if key_points.shape[0] <= max(RIGHT_HIP, RIGHT_KNEE):
         hip_score += 0
     
     elif key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold:
@@ -195,21 +195,29 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
             hip_score += 20
 
     # hip_score 값은 0에서 40 사이로 계산됩니다 (각 엉덩이와 무릎 비교에서 최대 20점씩).
-    hip_score = max(0, min(40, hip_score / 2))  # 점수 범위 보장
+    hip_score = max(0, min(40, hip_score))  # 점수 범위 보장
 
     # 2. Upper Score (어깨와 엉덩이/무릎 중앙 비교)
     upper_score = 0
     shoulder_center_x = None
     hip_knee_center_x = None
 
+
+    
     # 어깨 중앙 x 좌표 계산
-    if key_points[LEFT_SHOULDER, 2] > confidence_threshold and key_points[RIGHT_SHOULDER, 2] > confidence_threshold:
+    if key_points.shape[0] <= max(LEFT_SHOULDER, RIGHT_SHOULDER):
+        shoulder_center_x = None
+
+    elif key_points[LEFT_SHOULDER, 2] > confidence_threshold and key_points[RIGHT_SHOULDER, 2] > confidence_threshold:
         left_shoulder_x = key_points[LEFT_SHOULDER, 0]
         right_shoulder_x = key_points[RIGHT_SHOULDER, 0]
         shoulder_center_x = (left_shoulder_x + right_shoulder_x) / 2
 
     # 엉덩이와 무릎 중앙 x 좌표 계산
-    if (key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold and
+    if key_points.shape[0] <= max(LEFT_HIP, RIGHT_HIP):
+        hip_knee_center_x = None
+
+    elif (key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold and
         key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold):
         left_hip_knee_x = (key_points[LEFT_HIP, 0] + key_points[LEFT_KNEE, 0]) / 2
         right_hip_knee_x = (key_points[RIGHT_HIP, 0] + key_points[RIGHT_KNEE, 0]) / 2
@@ -232,23 +240,31 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     knee_diff = 0
 
     # 왼쪽 무릎과 발의 x 좌표 차이
-    if key_points[LEFT_KNEE, 2] > confidence_threshold and key_points[LEFT_ANKLE, 2] > confidence_threshold:
+    if key_points.shape[0] <= max(LEFT_ANKLE, LEFT_KNEE):
+        knee_diff += 0
+
+    elif key_points[LEFT_KNEE, 2] > confidence_threshold and key_points[LEFT_ANKLE, 2] > confidence_threshold:
         left_knee_x = key_points[LEFT_KNEE, 0]
         left_ankle_x = key_points[LEFT_ANKLE, 0]
         knee_diff += abs(left_knee_x - left_ankle_x)
 
     # 오른쪽 무릎과 발의 x 좌표 차이
-    if key_points[RIGHT_KNEE, 2] > confidence_threshold and key_points[RIGHT_ANKLE, 2] > confidence_threshold:
+    if key_points.shape[0] <= max(RIGHT_ANKLE, RIGHT_KNEE):
+        knee_diff += 0
+
+    elif key_points[RIGHT_KNEE, 2] > confidence_threshold and key_points[RIGHT_ANKLE, 2] > confidence_threshold:
         right_knee_x = key_points[RIGHT_KNEE, 0]
         right_ankle_x = key_points[RIGHT_ANKLE, 0]
         knee_diff += abs(right_knee_x - right_ankle_x)
 
+    knee_diff = knee_diff / 2
+
     # Knee Score 계산
-    if knee_diff <= 20:  # 차이가 20 이하
+    if knee_diff <= 70:  # 차이가 20 이하
         knee_score = 15
-    elif 20 < knee_diff <= 40:  # 차이가 20 ~ 40
+    elif 20 < knee_diff <= 90:  # 차이가 20 ~ 40
         knee_score = 10
-    elif 40 < knee_diff <= 60:  # 차이가 40 ~ 60
+    elif 40 < knee_diff <= 110:  # 차이가 40 ~ 60
         knee_score = 5
     else:  # 차이가 60 초과
         knee_score = 0
@@ -603,8 +619,6 @@ def main():
                         counter += 1
                         if counter < 10:
                             state = "start"
-                            if args.sport != 'squart':
-                                score = calculate_score(results[0].keypoints, mse, boundary)
                         else:
                             state = "finish"
                 else:
