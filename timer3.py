@@ -46,7 +46,7 @@ def start_timer(duration):          #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 return
             print(f"남은 시간: {duration}초")
             time.sleep(1)
-            duration -= 1
+            duration += 1
         
         timer_running = False
         timer_over = True

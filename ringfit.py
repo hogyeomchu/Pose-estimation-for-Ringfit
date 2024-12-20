@@ -9,13 +9,11 @@ import pygame
 import sys
 import time
 import logging
-import threading
-import Jetson.GPIO as GPIO
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, Colors
 from copy import deepcopy
 
-#import timer
+#import timer3 as timer
 
 
 sport_list = {
@@ -154,7 +152,7 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     key_points = key_points.squeeze(0)  # 불필요한 차원 축소
 
     # 기본 점수
-    basic_score = 50
+    basic_score = 50 - 25 * max(0, mse - boundary / 2) / (boundary / 2)
 
     # 키포인트 인덱스
     LEFT_HIP = 11
@@ -169,120 +167,99 @@ def calculate_score(key_points, mse, boundary, confidence_threshold=0.5):
     # 1. Hip Score (엉덩이 vs 무릎의 y 좌표)
     hip_diff = 0
     hip_score = 0
-    if key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold:
+    if key_points.shape[0] <= max(LEFT_HIP, RIGHT_HIP, LEFT_KNEE, RIGHT_KNEE):
+        hip_score += 0
+
+    elif key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold:
         left_hip_y = key_points[LEFT_HIP, 1]
         left_knee_y = key_points[LEFT_KNEE, 1]
-        hip_diff += (left_knee_y - left_hip_y)
-    if key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold:
+        diff = left_knee_y - left_hip_y  # 무릎과 엉덩이의 y 좌표 차이
+        if diff >= 0:  # 엉덩이가 무릎과 같거나 위에 있음
+            hip_score += 10
+        elif -20 <= diff < 0:  # 엉덩이가 무릎보다 약간 낮음
+            hip_score += max(0, 10 + (-diff / 20) * 10)  # 최소 점수 보장
+        else:  # 엉덩이가 무릎보다 많이 낮음
+            hip_score += 20
+    
+    if key_points.shape[0] <= max(LEFT_HIP, RIGHT_HIP, LEFT_KNEE, RIGHT_KNEE):
+        hip_score += 0
+    
+    elif key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold:
         right_hip_y = key_points[RIGHT_HIP, 1]
         right_knee_y = key_points[RIGHT_KNEE, 1]
-        hip_diff += (right_knee_y - right_hip_y)
+        diff = right_knee_y - right_hip_y  # 무릎과 엉덩이의 y 좌표 차이
+        if diff >= 0:  # 엉덩이가 무릎과 같거나 위에 있음
+            hip_score += 10
+        elif -20 <= diff < 0:  # 엉덩이가 무릎보다 약간 낮음
+            hip_score += max(0, 10 + (-diff / 20) * 10)  # 최소 점수 보장
+        else:  # 엉덩이가 무릎보다 많이 낮음
+            hip_score += 20
 
-    if hip_diff > 0:
-        hip_score = max(0, min(20, (hip_diff / 50) * 20))  # 정규화하여 최대 20점
+    # hip_score 값은 0에서 40 사이로 계산됩니다 (각 엉덩이와 무릎 비교에서 최대 20점씩).
+    hip_score = max(0, min(40, hip_score / 2))  # 점수 범위 보장
 
     # 2. Upper Score (어깨와 엉덩이/무릎 중앙 비교)
     upper_score = 0
     shoulder_center_x = None
     hip_knee_center_x = None
 
+    # 어깨 중앙 x 좌표 계산
     if key_points[LEFT_SHOULDER, 2] > confidence_threshold and key_points[RIGHT_SHOULDER, 2] > confidence_threshold:
         left_shoulder_x = key_points[LEFT_SHOULDER, 0]
         right_shoulder_x = key_points[RIGHT_SHOULDER, 0]
         shoulder_center_x = (left_shoulder_x + right_shoulder_x) / 2
 
+    # 엉덩이와 무릎 중앙 x 좌표 계산
     if (key_points[LEFT_HIP, 2] > confidence_threshold and key_points[LEFT_KNEE, 2] > confidence_threshold and
         key_points[RIGHT_HIP, 2] > confidence_threshold and key_points[RIGHT_KNEE, 2] > confidence_threshold):
         left_hip_knee_x = (key_points[LEFT_HIP, 0] + key_points[LEFT_KNEE, 0]) / 2
         right_hip_knee_x = (key_points[RIGHT_HIP, 0] + key_points[RIGHT_KNEE, 0]) / 2
         hip_knee_center_x = (left_hip_knee_x + right_hip_knee_x) / 2
 
+    # Upper Score 계산
     if shoulder_center_x is not None and hip_knee_center_x is not None:
         upper_diff = abs(shoulder_center_x - hip_knee_center_x)
-        upper_score = max(0, min(15, (1 - (upper_diff / 100)) * 15))  # 정규화하여 최대 15점
+        if upper_diff <= 10:  # 차이가 10 이하
+            upper_score = 15
+        elif 10 < upper_diff <= 30:  # 차이가 10 ~ 30
+            upper_score = 10
+        elif 30 < upper_diff <= 50:  # 차이가 30 ~ 50
+            upper_score = 5
+        else:  # 차이가 50 초과
+            upper_score = 0
 
     # 3. Knee Score (무릎과 발의 x 좌표 비교)
     knee_score = 0
     knee_diff = 0
+
+    # 왼쪽 무릎과 발의 x 좌표 차이
     if key_points[LEFT_KNEE, 2] > confidence_threshold and key_points[LEFT_ANKLE, 2] > confidence_threshold:
         left_knee_x = key_points[LEFT_KNEE, 0]
         left_ankle_x = key_points[LEFT_ANKLE, 0]
         knee_diff += abs(left_knee_x - left_ankle_x)
+
+    # 오른쪽 무릎과 발의 x 좌표 차이
     if key_points[RIGHT_KNEE, 2] > confidence_threshold and key_points[RIGHT_ANKLE, 2] > confidence_threshold:
         right_knee_x = key_points[RIGHT_KNEE, 0]
         right_ankle_x = key_points[RIGHT_ANKLE, 0]
         knee_diff += abs(right_knee_x - right_ankle_x)
 
-    if knee_diff > 0:
-        knee_score = max(0, min(15, (1 - (knee_diff / 50)) * 15))  # 정규화하여 최대 15점
+    # Knee Score 계산
+    if knee_diff <= 20:  # 차이가 20 이하
+        knee_score = 15
+    elif 20 < knee_diff <= 40:  # 차이가 20 ~ 40
+        knee_score = 10
+    elif 40 < knee_diff <= 60:  # 차이가 40 ~ 60
+        knee_score = 5
+    else:  # 차이가 60 초과
+        knee_score = 0
 
     # 최종 점수 계산
     score = basic_score + hip_score + upper_score + knee_score
-
+    print(basic_score, hip_score, upper_score, knee_score)
     return int(score)
 
 #######################################
-interrupt_pin = 16
-timer_state = {
-    "running": False,
-    "over": False,
-}
-timer_event = threading.Event()
-lock = threading.Lock()  # 동기화를 위한 Lock 객체
-
-# GPIO 초기화
-def setup_gpio():
-    GPIO.setmode(GPIO.BOARD)  # GPIO 핀 번호 설정 방식
-    GPIO.setup(interrupt_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 핀 설정 (입력 핀으로 설정)
-
-# 타이머 종료 함수
-def stop_timer():
-    with lock:
-        timer_event.set()  # 이벤트를 설정하여 타이머를 중단
-        timer_state["running"] = False
-        print("타이머 중단 및 초기화")
-
-# 타이머 시작 함수
-def start_timer(duration):
-    with lock:
-        if timer_state["running"]:  # 이미 타이머가 실행 중이면 중단
-            stop_timer()
-
-        timer_state["running"] = True
-        timer_state["over"] = False
-        timer_event.clear()  # 이벤트 초기화
-        print("타이머 시작!")
-
-    def timer_task():
-        nonlocal duration
-        while duration > 0:
-            if timer_event.is_set():  # 이벤트가 설정되면 중단
-                return
-            print(f"남은 시간: {duration}초")
-            time.sleep(1)
-            duration -= 1
-
-        with lock:
-            timer_state["running"] = False
-            timer_state["over"] = True
-            print("타이머 종료!")
-
-    threading.Thread(target=timer_task, daemon=True).start()
-
-# 상태 확인 함수
-def is_timer_running():
-    with lock:
-        return timer_state["running"]
-
-def is_timer_over():
-    with lock:
-        return timer_state["over"]
-
-
-# GPIO 정리 함수
-def cleanup_gpio():
-    GPIO.cleanup()
-    print("GPIO 정리 완료")
 ###########################################
 
 
@@ -542,7 +519,7 @@ def main():
     time_ck = 0
     height, weight = 180, 70
     # height, weight = get_height_and_weight()
-    setup_gpio()
+    # timer.setup_gpio()
     # Loop through the video frames
     while cap.isOpened():
         # Read a frame from the video
@@ -590,18 +567,8 @@ def main():
                             (left_conf > 0.5 and bbox_x <= left_x <= bbox_x + bbox_width and bbox_y <= left_y <= bbox_y + bbox_height)
                             or (right_conf > 0.5 and bbox_x <= right_x <= bbox_x + bbox_width and bbox_y <= right_y <= bbox_y + bbox_height)
                         ):
-                            if time_ck == 0:
-                                start_timer(3)
-                                time_ck == 1
-                            
-                            if is_timer_over() and time_ck == 1:
-                                state = "start"
-                                time_ck = 0
+                            state = "start"
 
-                        else:
-                            if is_timer_running():
-                                stop_timer()
-                                time_ck == 0
 
             if state == "start":            
                 # Get hyperparameters
@@ -612,15 +579,12 @@ def main():
                 mse = calculate_mse(results[0].keypoints, example_idx, height, weight)
 
                 # Determine whether to complete once
-                if mse < boundary:
-                    # 점수 계산
-                    temp_score = calculate_score(results[0].keypoints, mse, boundary)
-                    max_score = max(max_score, temp_score)
-                    
+                if mse < boundary:                    
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 3초 이상 경과 확인
                         state = "redo"
+                        score = calculate_score(results[0].keypoints, mse, boundary)
                 else:
                     start_time = None
 
@@ -633,20 +597,15 @@ def main():
                 mse = calculate_mse(results[0].keypoints, example_idx, height, weight)
 
                 # Determine whether to complete once
-                if mse < boundary:
-                    # 점수 계산
-                    if args.sport != "squart":
-                        temp_score = calculate_score(results[0].keypoints, mse, boundary)
-                        max_score = max(max_score, temp_score)
-
+                if mse < boundary: 
                     if start_time is None:  # 시작 시간 초기화
                         start_time = time.time()
                     elif time.time() - start_time >= 3:  # 1초 이상 경과 확인
                         counter += 1
-                        score = max_score
-                        max_score = 0
                         if counter < 10:
                             state = "start"
+                            if args.sport != 'squart':
+                                score = calculate_score(results[0].keypoints, mse, boundary)
                         else:
                             state = "finish"
                 else:
@@ -689,7 +648,7 @@ def main():
 
     # Release the video capture object and close the display window
     cap.release()
-    GPIO.cleanup()
+    # timer.GPIO.cleanup()
     if args.save_dir is not None:
         output.release()
     cv2.destroyAllWindows()
