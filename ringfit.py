@@ -507,6 +507,8 @@ def main():
     else:
         cap = cv2.VideoCapture(args.input)
 
+    desired_fps = 1
+    cap.set(cv2.CAP_PROP_FPS, desired_fps)
     # For save result video
     if args.save_dir is not None:
         save_dir = os.path.join(
