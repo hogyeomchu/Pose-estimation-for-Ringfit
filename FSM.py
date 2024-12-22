@@ -28,8 +28,8 @@ class FSM:
         # 상태 초기화
         self.states = {  
             "ready": State(delay=5, nstate1="start", nstate2="start"),
-            "start": State(delay=3, nstate1="redo", nstate2="redo"),
-            "redo": State(delay=3, nstate1="start", nstate2="finish"),
+            "start": State(delay=3, nstate1="redo", nstate2="finish"),
+            "redo": State(delay=3, nstate1="start", nstate2="start"),
             "finish": State(delay=0, nstate1="ready", nstate2="ready"),
 
         }
